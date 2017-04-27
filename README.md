@@ -1,2 +1,2 @@
 # sidemetrics
-A webapp to help site and blog owners measure their earnings online.
+A cool webapp to help site and blog owners measure their earnings online.
