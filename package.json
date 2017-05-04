@@ -1,0 +1,25 @@
+{
+  "name": "sidemetrics",
+  "description": "Webapp to help bloggers have an overview of their online income",
+  "version": "1.0.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nicolasdaudin/sidemetrics.git"
+  },
+  "author": "Nicolas Daudin for Webaddikt",
+  "license": "MIT",
+  "main": "server.js",
+  "scripts": {
+    "start": "nodemon server.js"
+  },
+  "dependencies": {
+    "async": "^2.3.0",
+    "body-parser": "^1.14.1",
+    "express": "^4.13.3",
+    "googleapis": "^19.0.0",
+    "moment": "^2.18.1",
+    "mongoose": "^4.9.7",
+    "morgan": "^1.6.1",
+    "nodemon": "^1.11.0"
+  }
+}
