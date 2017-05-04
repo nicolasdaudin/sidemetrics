@@ -3,7 +3,7 @@ var app = express();
 var bodyParser = require('body-parser');
 var google = require('googleapis');
 
-var config = require('./config');
+//var config = require('./config');
 var async = require ('async');
 
 var mongoose = require('mongoose');
@@ -12,9 +12,9 @@ var Token = require('./models/token');
 
 var moment = require ('moment');
 
-var url = config.database;
+var database_url = process.env.DATABASE_URL;
 
-mongoose.connect(config.database);
+mongoose.connect(database_url);
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', function() {
@@ -28,9 +28,12 @@ db.once('open', function() {
 
 var OAuth2 = google.auth.OAuth2;
 var oauth2Client = new OAuth2(
-		config.auth.google.client_id,
-		config.auth.google.client_secret,
-		config.auth.google.redirect_url);
+		process.env.AUTH_GOOGLE_CLIENT_ID,
+		process.env.AUTH_GOOGLE_CLIENT_SECRET,
+		process.env.AUTH_GOOGLE_REDIRECT_URL);
+
+console.log('oauth2Client',oauth2Client);
+console.log('process.env',process.env);
 
 app.set('port', process.env.PORT || 3000);
 

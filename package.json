@@ -10,7 +10,7 @@
   "license": "MIT",
   "main": "server.js",
   "scripts": {
-    "start": "nodemon server.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "async": "^2.3.0",
