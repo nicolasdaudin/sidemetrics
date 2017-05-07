@@ -41,7 +41,7 @@ app.get('/', function (req, res) {
 
 /** CRON TO SEND EMAILS **/
  
-var task = cron.schedule('*/1 * * * *', function() {
+var task = cron.schedule('* */1 * * *', function() {
     // CRON STARTED
     console.log('CRON BEGIIIIIIIN');
 
