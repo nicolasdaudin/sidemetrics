@@ -35,3 +35,12 @@ jspm_packages
 
 # Optional REPL history
 .node_repl_history
+
+# other stuff
+*.sublime*
+.DS_Store
+
+# not committing config.js since it contains sensitive data
+config.js
+.env
+

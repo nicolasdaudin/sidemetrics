@@ -39,8 +39,10 @@ app.get('/', function (req, res) {
 });
 
 
-/** CRON TO SEND EMAILS **/
- 
+// CRON TO SEND EMAILS **/
+// every minute: * */1 * * * 
+// every day at 2am : * * 2 * *
+
 var task = cron.schedule('* */1 * * *', function() {
     // CRON STARTED
     console.log('CRON BEGIIIIIIIN');
@@ -56,15 +58,16 @@ var task = cron.schedule('* */1 * * *', function() {
 
 
     		users.forEach(function(user){
-    			console.log("Trying to Getting Adsense earnings for user",user.username);
-    		
-	    		adsense.getEarnings(user._id,yesterday,function(err,result){
+    			
+    			var username = user.username;
+    			console.log("[%s] Trying to Getting Adsense earnings for user",username);
+    			adsense.getEarnings(user._id,username,yesterday,function(err,result){
 					if (err){
-						console.log("Returned from getAdsenseEarnings with ERROR");			
+						console.log("[%s] Returned from getAdsenseEarnings with ERROR",username);			
 					} else {
-						console.log("Google Adsense earnings of yesterday",result);		
+						console.log("[%s] Google Adsense earnings of yesterday",username,result);		
 
-						console.log('##### About to send the email to',user.email);
+						console.log('##### [%s] About to send the email to',username,user.email);
 
 						var earnings = result.totals[1];
 						var mailText = 'Dear ' + user.username +', here is your income.\n\nGoogle Adsense : ' + earnings;
@@ -82,9 +85,9 @@ var task = cron.schedule('* */1 * * *', function() {
 						// send mail with defined transport object
 						transporter.sendMail(mailOptions, function(err, info){
 						    if (err) {
-						        console.log("Email could not be sent. Error : ", err);			      
+						        console.log("[%s] Email could not be sent. Error : ", username,err);			      
 						    } else {
-						    	console.log('Message %s sent: %s', info.messageId, info.response);
+						    	console.log('[%s] Message %s sent: %s', username, info.messageId, info.response);
 						    }			    
 						});
 
@@ -101,6 +104,7 @@ var task = cron.schedule('* */1 * * *', function() {
 
 /** DATABASE and FINAL SERVER INIT **/ 
 var database_url = process.env.DATABASE_URL;
+//mongoose.connect(database_url,{ config: { autoIndex: false } });
 mongoose.connect(database_url);
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));

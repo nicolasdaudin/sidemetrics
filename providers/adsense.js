@@ -4,21 +4,19 @@ var google = require('googleapis');
 var async = require ('async');
 var Token = require('../models/token');
 var User = require('../models/user');
+var Income = require('../models/income');
 var moment = require ('moment');
 
 var ObjectId = require('mongoose').Types.ObjectId; 
 
 /** GOOGLE OAUTH 2 INIT **/
 var OAuth2 = google.auth.OAuth2;
-var oauth2Client = new OAuth2(
-		process.env.AUTH_GOOGLE_CLIENT_ID,
-		process.env.AUTH_GOOGLE_CLIENT_SECRET,
-		process.env.AUTH_GOOGLE_REDIRECT_URL);
+
 
 var router = express.Router();
 
 // should only be called when the user tries to connect for the first time
-router.get('/connect',function(req,res){
+router.get('/connect/:username',function(req,res){
 	console.log('\n##### get /adsense/connect');
 	
 	/*var OAuth2 = google.auth.OAuth2;
@@ -29,11 +27,19 @@ router.get('/connect',function(req,res){
 		config.auth.google.redirect_url);
 		*/
 
+	console.log('username',req.params.username);
 	var scopes = ['https://www.googleapis.com/auth/adsense'];
+	var user = { username: req.params.username };  
+
+	var oauth2Client = new OAuth2(
+		process.env.AUTH_GOOGLE_CLIENT_ID,
+		process.env.AUTH_GOOGLE_CLIENT_SECRET,
+		process.env.AUTH_GOOGLE_REDIRECT_URL);
 
 	var url = oauth2Client.generateAuthUrl({
 		access_type : 'offline',
-		scope: scopes
+		scope: scopes,
+		state: encodeURIComponent(JSON.stringify(user))
 	});
 
 
@@ -45,17 +51,23 @@ router.get('/connect',function(req,res){
 
 // should only be called when the user tries to connect for the first time (after the oauth on Google side)
 router.get('/oauth2callback',function(req,res){
-	console.log('\n##### get /adsense/oauth2callback');
-
 	var code = req.query.code;
+	var user = JSON.parse(decodeURIComponent(req.query.state));
+	var username = user.username;
 	//console.log('code',code);
+	console.log('\n##### get /adsense/oauth2callback for username',username);
+
+	var oauth2Client = new OAuth2(
+		process.env.AUTH_GOOGLE_CLIENT_ID,
+		process.env.AUTH_GOOGLE_CLIENT_SECRET,
+		process.env.AUTH_GOOGLE_REDIRECT_URL);
 
 	oauth2Client.getToken(code,function(err,tokensOAuth){
 		console.log('tokensOAuth',tokensOAuth);
 		if (!err){
 			oauth2Client.setCredentials(tokensOAuth);
 
-			User.findByUsername("nicdo77",function(err,user){
+			User.findByUsername(username,function(err,user){
 				if (err){
 					console.log('err',err);
 					return;
@@ -108,24 +120,26 @@ router.get('/oauth2callback',function(req,res){
 		}
 	});
 
-	
+	var html = "<p>authenticated in Adsense</p><a href='/adsense/earnings/" + username + "'>get adsense earnings</a>";
 
-	res.send("<p>authenticated in Adsense</p><a href='/adsense/earnings/'>get adsense earnings</a>");
+	res.send(html);
 });
 
 // to be called once authentified. 
 // can be called directly if we already have a refresh token (for example from the cron or someting...)
-router.get('/earnings',function(req,res){
+router.get('/earnings/:username',function(req,res){
 	console.log('\n##### get /adsense/earnings');	
+	console.log('username',req.params.username);
+	var username = req.params.username;
 
-	User.findByUsername("nicdo77",function(err,user){
+	User.findByUsername(username,function(err,user){
 		if (err){
 			console.log('Error while retrieving user',err);
 			callback(err,null);
 		} else {
 			console.log('user',user);
 			var yesterday = moment().subtract(1,'days'); 
-			getEarnings(user._id,yesterday,function(err,result){
+			getEarnings(user._id,username,yesterday,function(err,result){
 				if (err){
 					console.log("Returned from getAdsenseEarnings with ERROR");
 					res.send("Returned from getAdsenseEarnings with ERROR");
@@ -142,25 +156,33 @@ router.get('/earnings',function(req,res){
 	
 });
 
-var getEarnings = function (user_id,day,after){
+var getEarnings = function (user_id,username,day,after){
 
 	var adsense;
 	var accountId;
+	
 
 	var googleApiDay = day.format('YYYY-MM-DD');
-	
+	console.log('googleApiDay',googleApiDay);
+	//var dbDay = new Date(day);
+	//console.log('dbDay',dbDay);
 
 	async.waterfall([
 		
 
 		function retrieveTokens(callback){
-			console.log('##### Preparing tokens for user_id',user_id);
+			console.log('##### [%s] Preparing tokens for user_id :',username,user_id);
 			Token.findOne({user_id: user_id}, function(err,tokenObject){
 				if (err){
-					console.log('No token found');
+					console.log('[%s] No token found',username);
 					after(err, null);
 				} else {
-					console.log('token',tokenObject);
+					console.log('[%s] token: ',username, tokenObject);
+
+					var oauth2Client = new OAuth2(
+						process.env.AUTH_GOOGLE_CLIENT_ID,
+						process.env.AUTH_GOOGLE_CLIENT_SECRET,
+						process.env.AUTH_GOOGLE_REDIRECT_URL);
 
 					oauth2Client.setCredentials({
 						access_token : tokenObject.accessToken,
@@ -180,22 +202,24 @@ var getEarnings = function (user_id,day,after){
 
 	
 		function retrieveAccountId(callback){
-			console.log('##### Before Calling list');
+			console.log('[%s] ##### Before Calling list',username);
 			adsense.accounts.list({maxResults:10},function(err,result){
 				if (err){
-					console.log('Error while retrieving accounts',err);
+					console.log('[%s] Error while retrieving accounts',username, err);
 					after(err, null);
 				} else {
 					//console.log('Accounts',result);
 					//console.log('My account',result.items[0]);
 					accountId = result.items[0].id;
+					console.log('[%s] AccountId retrieved: ',username,accountId);
+
 					callback(null,accountId);
 				}
 			});
 		},
 		function retrieveEarnings(accountId,callback){
 
-			console.log('##### Before calling generate');
+			console.log('[%s] ##### Before calling generate',username);
 
 			var params  = {
 				startDate : googleApiDay,
@@ -206,23 +230,35 @@ var getEarnings = function (user_id,day,after){
 				metric: 'EARNINGS'
 			};   
 
+			//console.log('[%s] oauth2Client',username,oauth2Client);
 			adsense.accounts.reports.generate(params,function(err,result){
 				if (err){
-					console.log('Error',err);
+					console.log('[%s] Error while getting earnings',username,err);
 					after(err, null);
 				} else {
-					console.log('Successfull');
+					console.log('[%s] Successfull',username);
 					//console.log('result',result);
 					callback(null, result);
+				}
+			});
+		}, function saveInDb(result,callback){
+			var adsenseIncome = new Income.Adsense ( { user_id: user_id, date: googleApiDay, income : result.totals[1]});
+			adsenseIncome.save(function(err){
+				if (err){
+					console.log('[%s] Error while saving adsense earnings into DB',username,err);
+					callback(null,result);
+				} else {
+					console.log('[%s] Successfully saved in DB',username);
+					callback(null,result);
 				}
 			});
 		}
 	], function(err,result){
 		if (err){
-			console.log('final function err',err);
+			console.log('[%s] final function err',username,err);
 			after('error',null);
 		} else {
-			console.log('final result',result);
+			console.log('[%s] final result',username,result);
 			after(null,result);
 		}
 	});
