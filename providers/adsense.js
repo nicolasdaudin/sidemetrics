@@ -80,6 +80,8 @@ router.get('/oauth2callback',function(req,res){
 						console.log('tokensDB',tokensDB);
 						if (tokensDB.length === 0) {
 							// create a new token
+							// BE CAREFUL WITH THE REFRESH TOKEN. IT IS ONLY SET ON THE FIRST CONNECTION. 
+							// AFTERWARDS NO REFRESH TOKEN, YOU NEED TO REVOKE THE ACCESS FROM THE GOOGLE ADMIN PANEL
 							console.log('No token retrieved from DB. We create a new one');						
 							var token = new Token ({
 								user_id : user._id,

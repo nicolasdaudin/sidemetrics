@@ -43,9 +43,10 @@ app.get('/', function (req, res) {
 // every minute: * */1 * * * 
 // every day at 2am : * * 2 * *
 
-var task = cron.schedule('* */1 * * *', function() {
+var task = cron.schedule('* * 5 * *', function() {
     // CRON STARTED
-    console.log('CRON BEGIIIIIIIN');
+    var now = moment();
+    console.log('CRON BEGIN at',now);
 
     var yesterday = moment().subtract(1,'days'); 
     var niceDay = yesterday.format('LL');
@@ -77,7 +78,7 @@ var task = cron.schedule('* */1 * * *', function() {
 						var mailOptions = {
 						    from: '"Sidemetrics 📈❤️" <no-reply@sidemetrics.com>', // sender address
 						    to: user.email, 
-						    subject: 'GMail Earnings for Day ' + niceDay, // Subject line
+						    subject: 'Ganancias del dia ' + niceDay, // Subject line
 						    text: mailText, // plain text body
 						    html: mailHtml // html body
 						};
