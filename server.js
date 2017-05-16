@@ -36,6 +36,12 @@ app.use('/adsense',adsense.router);
 
 app.get('/', function (req, res) {
   res.send('Hello World from SideMetrics');
+  console.log('Server time is : ', moment());
+});
+
+app.get('/wakeup',function(req,res){
+	res.send('Waking up');
+	console.log("Just woke up ;-) . Time now is : ",moment());
 });
 
 
