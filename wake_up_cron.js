@@ -2,7 +2,6 @@ var http = require('http'); //importing http
 
 var options = {    
 	host: 'localhost',    
-	port: 5000,
     path: '/wakeup'
 };
 
