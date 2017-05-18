@@ -1,7 +1,8 @@
 var http = require('http'); //importing http
 
 var options = {    
-	host: 'localhost',    
+	// to be changed once we migrate to a proper domain name
+	host: 'https://sidemetrics.herokuapp.com',    
     path: '/wakeup'
 };
 
