@@ -48,8 +48,8 @@ app.get('/wakeup',function(req,res){
 // CRON TO SEND EMAILS **/
 // every minute: * */1 * * * 
 // every day at 2am : * * 2 * *
-
-var task = cron.schedule('* 35 4 * *', function() {
+// every day ar 4:35am: 4 35 * * *
+var task = cron.schedule('4 35 * * *', function() {
     // CRON STARTED
     var now = moment();
     console.log('CRON BEGIN at',now);
