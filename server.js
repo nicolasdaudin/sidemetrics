@@ -8,6 +8,7 @@ var mongoose = require('mongoose');
 var moment = require ('moment');
 
 var adsense = require ('./providers/adsense');
+var tradetracker = require ('./providers/tradetracker');
 var User = require('./models/user');
 
 
@@ -33,9 +34,19 @@ app.use(bodyParser.json()); // for parsing application/json
 app.use(bodyParser.urlencoded({ extended: true })); // for parsing 
 
 app.use('/adsense',adsense.router);
+app.use('/tradetracker',tradetracker.router);
 
 app.get('/', function (req, res) {
-  res.send('Hello World from SideMetrics');
+  var homepageHtml = 
+  		"<div>" + 
+  		"<p>Hello World from SideMetrics</p>" + 
+  		"<ul>"+
+  		"<li><a href='/adsense/connect/nicdo77'>Connect to Adsense (nicdo77)</a></li>"+
+  		"<li><a href='/tradetracker/earnings/nicdo77'>Get Tradetracker earnings for nicdo77</a></li>" +
+  		"<li><a href='/tradetracker/earnings/jimena123'>Get Tradetracker earnings for jimena123</a></li>" +
+  		"</ul>" +
+  		"</div>";
+  res.send(homepageHtml);
   console.log('Server time is : ', moment());
 });
 

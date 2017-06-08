@@ -5,7 +5,6 @@ var async = require ('async');
 var Token = require('../models/token');
 var User = require('../models/user');
 var Income = require('../models/income');
-var moment = require ('moment');
 
 var ObjectId = require('mongoose').Types.ObjectId; 
 
