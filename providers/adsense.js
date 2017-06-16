@@ -5,6 +5,7 @@ var async = require ('async');
 var Token = require('../models/token');
 var User = require('../models/user');
 var Income = require('../models/income');
+var moment = require ('moment');
 
 var ObjectId = require('mongoose').Types.ObjectId; 
 
@@ -150,12 +151,33 @@ router.get('/earnings/:username',function(req,res){
 				}
 			});
 		}
-	});
-		
-
-
-	
+	});	
 });
+
+var getMonthEarnings = function(user_id,username,day,after){
+	console.log("######### getMonthEarnings BEGIN");
+	var daymonth = day.month() + 1;
+	console.log("Month [%s] with number [%s]",day.format('MMMM'),daymonth);
+	Income.Adsense.aggregate([
+			{$project:{user_id:1,date:1,income:1,month : {$month : "$date"}}},
+			{$match: { user_id : user_id, month: daymonth}},
+			{$group: { _id: "$user_id", total: {$sum: "$income"}}}
+		],
+		function(err,result){
+			if (err){
+				console.log("Error",err);
+				after(err,null);
+			} 
+				
+			console.log("Success with getMonthEearnings");
+			console.log("Result:",result);
+			after(null,result[0].total);
+		}
+	);
+	//console.log("######### getMonthEarnings END");
+};
+
+
 
 var getEarnings = function (user_id,username,day,after){
 
@@ -265,4 +287,4 @@ var getEarnings = function (user_id,username,day,after){
 	});
 };
 
-module.exports = {router, getEarnings};
+module.exports = {router, getEarnings, getMonthEarnings};

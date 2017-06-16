@@ -41,7 +41,9 @@ app.get('/', function (req, res) {
   		"<div>" + 
   		"<p>Hello World from SideMetrics</p>" + 
   		"<ul>"+
-  		"<li><a href='/adsense/connect/nicdo77'>Connect to Adsense (nicdo77)</a></li>"+
+  		"<li><a href='/cron/adsense'>Execute Adsense Cron</a></li>"+  		
+  		"<li><a href='/adsense/connect/nicdo77'>Connect to Adsense (nicdo77)</a></li>"+  		
+  		"<li><a href='/adsense/earnings/nicdo77'>Get Adsense earnings (nicdo77)</a></li>"+
   		"<li><a href='/tradetracker/earnings/nicdo77'>Get Tradetracker earnings for nicdo77</a></li>" +
   		"<li><a href='/tradetracker/earnings/jimena123'>Get Tradetracker earnings for jimena123</a></li>" +
   		"</ul>" +
@@ -55,12 +57,13 @@ app.get('/wakeup',function(req,res){
 	console.log("Just woke up ;-) . Time now is : ",moment());
 });
 
+app.get('/cron/adsense',function(req,res){
+	console.log("CRON - MANUAL LAUNCH - BEGIN");
+	cronAdsense();
+	console.log("CRON - MANUAL LAUNCH - END");
+});
 
-// CRON TO SEND EMAILS **/
-// every minute: * */1 * * * 
-// every day at 2am : * * 2 * *
-// every day ar 4:35am: 4 35 * * *
-var task = cron.schedule('35 4 * * *', function() {
+const cronAdsense = function() {
     // CRON STARTED
     var now = moment();
     console.log('CRON BEGIN at',now);
@@ -85,38 +88,58 @@ var task = cron.schedule('35 4 * * *', function() {
 					} else {
 						console.log("[%s] Google Adsense earnings of yesterday",username,result);		
 
-						console.log('##### [%s] About to send the email to',username,user.email);
+						// Trying to retrieve the total for the month
+						// Build a method in adsense.js file to retrieve sum of earnings for the month???
+						// like getMonthEarnings
 
-						var earnings = result.totals[1];
-						var mailText = 'Dear ' + user.username +', here is your income.\n\nGoogle Adsense : ' + earnings;
-						var mailHtml = 'Dear ' + user.username +', here is your income.<br/><br/><b>GoogleAdsense</b> : ' + earnings;
 
-						// setup email data with unicode symbols
-						var mailOptions = {
-						    from: '"Sidemetrics 📈❤️" <no-reply@sidemetrics.com>', // sender address
-						    to: user.email, 
-						    subject: 'Ganancias del dia ' + niceDay, // Subject line
-						    text: mailText, // plain text body
-						    html: mailHtml // html body
-						};
+						adsense.getMonthEarnings(user._id,username,yesterday,function(err,monthlyTotal){
+							if (err){
+								console.log("[%s] Returned from getMonthEarnings with ERROR",username);
+								return;
+							} else {
+								var monthname = yesterday.format('MMMM')
+								console.log("[%s] Google Adsense MONTHLY earnings for [%s]",username,monthname,monthlyTotal);
+							
+								console.log('##### [%s] About to send the email to',username,user.email);
 
-						// send mail with defined transport object
-						transporter.sendMail(mailOptions, function(err, info){
-						    if (err) {
-						        console.log("[%s] Email could not be sent. Error : ", username,err);			      
-						    } else {
-						    	console.log('[%s] Message %s sent: %s', username, info.messageId, info.response);
-						    }			    
-						});
+								var earnings = result.totals[1];
+								//var mailText = 'Dear ' + user.username +', here is your income.\n\nGoogle Adsense : ' + earnings;
+								var mailHtml = 'Dear ' + user.username +', here is your income.' +
+									'<p><b>GoogleAdsense</b> : ' + earnings + ' <i>(Total for ' + monthname + ' : ' + monthlyTotal + ')</i></p>';
+
+								// setup email data with unicode symbols
+								var mailOptions = {
+								    from: '"Sidemetrics 📈❤️" <no-reply@sidemetrics.com>', // sender address
+								    to: user.email, 
+								    subject: 'Ganancias del dia ' + niceDay, // Subject line
+								    //text: mailText, // plain text body
+								    html: mailHtml // html body
+								};
+
+								// send mail with defined transport object
+								transporter.sendMail(mailOptions, function(err, info){
+								    if (err) {
+								        console.log("[%s] Email could not be sent. Error : ", username,err);			      
+								    } else {
+								    	console.log('[%s] Message %s sent: %s', username, info.messageId, info.response);
+								    }			    
+								});
+							}
+						});	
 
 					}	
 				});
 	    	});
     	}
     });
+};
 
-
-}, true);
+// CRON TO SEND EMAILS **/
+// every minute: * */1 * * * 
+// every day at 2am : * * 2 * *
+// every day ar 4:35am: 4 35 * * *
+var task = cron.schedule('35 4 * * *', cronAdsense, true);
  
 
 
