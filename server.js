@@ -79,6 +79,19 @@ const cronAdsense = function() {
 
 
     		users.forEach(function(user){
+
+    			/* ideas for tradetracker
+
+    			Faire un async.forEach pour chaque user
+
+    			Faire un async.parallel pour :
+    			- adsense
+    			- tradetracker
+    			Dans chaque type d'income, faire un waterfall pour day earnings PUIS month earnings
+    			(on peut pas faire en parallèle car pour le moment c'est le getEarnings qui déclenche le retrieveEarnings depuis les APIs)
+
+    			A la fin de tout ça, envoyer l'email. 
+    			*/
     			
     			var username = user.username;
     			console.log("[%s] Trying to Getting Adsense earnings for user",username);
@@ -86,7 +99,7 @@ const cronAdsense = function() {
 					if (err){
 						console.log("[%s] Returned from getAdsenseEarnings with ERROR",username);			
 					} else {
-						console.log("[%s] Google Adsense earnings of yesterday",username,result);		
+						console.log("[%s] Google Adsense earnings of yesterday: ",username,result);		
 
 						// Trying to retrieve the total for the month
 						// Build a method in adsense.js file to retrieve sum of earnings for the month???
@@ -98,8 +111,8 @@ const cronAdsense = function() {
 								console.log("[%s] Returned from getMonthEarnings with ERROR",username);
 								return;
 							} else {
-								var monthname = yesterday.format('MMMM')
-								console.log("[%s] Google Adsense MONTHLY earnings for [%s]",username,monthname,monthlyTotal);
+								var monthname = yesterday.format('MMMM');
+								console.log("[%s] Google Adsense MONTHLY earnings for [%s]: ",username,monthname,monthlyTotal);
 							
 								console.log('##### [%s] About to send the email to',username,user.email);
 

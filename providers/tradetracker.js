@@ -4,10 +4,13 @@ var router = express.Router();
 
 var soap = require ('soap');
 var Cookie = require ('soap-cookie');
+var async = require ('async');
+
 
 var moment = require ('moment');
 
 var User = require('../models/user');
+var Income = require('../models/income');
 var Auth = require('../models/tradetrackerauth');
 
 
@@ -26,215 +29,177 @@ router.get('/earnings/:username',function(req,res){
 			res.send('Error while retrieving user',err);
 		} else {
 			console.log('user',user);
-			
-			Auth.findOne({user_id:user._id},function(err,credentials){
+			var yesterday = moment().subtract(1,'days'); 
+			getEarnings(user._id,username,yesterday,function(err,result){
+				if (err){
+					console.log("Returned from getEarnings (Tradetracker) with ERROR");
+					res.send("Returned from getEarnings (Tradetracker) with ERROR");
+				} else {
+					//console.log("FINAL  RESULT",result);
+					res.send("<p>FINAL RESULT CALCULATING.... </p>");
+				}
+			});
+		}
+	});
+});
+
+var getEarnings = function(user_id,username,day,after){
+
+	var tradetrackerApiDay = day.format('YYYY-MM-DD');
+
+	async.waterfall([
+
+		function findCredentials(callback){
+			console.log('async findCredentials');
+			Auth.findOne({user_id:user_id},function(err,credentials){
 				if (err){
 					console.log('err while getting Tradetracker credentials',err);
-					return;
+					after(err,null);
 				} 
 				console.log('tradetracker credentials',credentials);
 				if (credentials.length === 0){
 					// no credentials, this user is not connected to Tradetracker
 					console.log('user %s has no credentials for Tradetracker, returning',user.username);
-					return;
+					after(err,null);
 				}
-							 
-			  	var args = {
-			  		customerID : credentials.customerID, //'117819',
-			  		passphrase : credentials.passphrase, //'d5e28dcff286edb8a9ae135b1df7e07db4c85f87',
-			  		sandbox: false,
-			  		locale: 'fr_FR',
-			  		demo: false
-			  	};
 
-			  	soap.createClient(SOAP_URL, function(err, client) {
-			      	client.authenticate(args, function(err, result, raw, soapHeader) {
-			          	if (err) {
-			          		console.log('Error while authenticating',err);
-			          		return;
-			          	} 
-
-
-			          	//console.log('Tradetracker authenticate result',result);
-			          	//console.log('Authenticate Client request',client.lastRequest);
-			          	//console.log('Authenticate Client response headers',client.lastResponseHeaders);
-
-			          	client.setSecurity(new Cookie(client.lastResponseHeaders));
-
-
-			          	
-			          	//var wsSecurity = new soap.BasicAuthSecurity('117819', 'd5e28dcff286edb8a9ae135b1df7e07db4c85f87');
-			  			//client.setSecurity(wsSecurity);
-
-			          	
-			          	//console.log('Tradetracker authenticate raw',raw);
-			          	//console.log('Tradetracker authenticate soapHeader',soapHeader);
-			          	//console.log('Client describe',client.describe());
-
-
-			          	
-			          	var argsAS = {
-			          		options: {}
-			          	};
-
-			          	client.getAffiliateSites(argsAS ,function(err,result){
-			          		if (err){
-			          			console.log('Error while getting affiliate sites',err);
-			          			res.send(err);
-			          			return;
-			          		}
-
-
-			          		console.log('AffiliateSites raw result',result);
-			          		console.log('affiliatesites',result.affiliateSites);
-			          		console.log('affiliatesites name',result.affiliateSites.item.name.$value);
-			          		//console.log('AffiliateSites ok',affiliatesites.item);
-			          	
-
-				          	var yesterday = moment().subtract(1,'days'); 
-							var tradetrackerApiDay = yesterday.format('YYYY-MM-DD');
-
-				          	var argsRAS = {
-				          	 	affiliateSiteID : 214395,
-				          	 	options : {
-									 dateFrom: tradetrackerApiDay,
-									 dateTo: tradetrackerApiDay
-				          		}
-				          	};
-
-				          	client.getReportAffiliateSite(argsRAS,function(err,report){
-				          		if (err){
-				          			//console.log('Error while getting conversion transactions',err);
-				          			res.send(err);
-				          			return;
-				          		}
-
-				          		var earnings = report.reportAffiliateSite.totalCommission.$value;
-				          		console.log('Earned : ',earnings);
-								//console.log('get Report Affiliate Site Client request',client.lastRequest);
-								//console.log('get Report Affiliate Site Client response headers',client.lastResponseHeaders);
-
-				          		res.setHeader('Content-Type', 'application/json');
-				          		res.send(JSON.stringify(report,null,4));
-
-
-				          	});
-				        });
-			      	});
-			  	});	
-
-				
-			});
-
-			
-		}
-	});
-});
-
-var getEarnings = function (user_id,username,day,after){
-
-	
-
-	var tradetrackerApiDay = day.format('YYYY-MM-DD');
-	
-	/**
-	async.waterfall([
-		
-
-		function retrieveTokens(callback){
-			console.log('##### [%s] Preparing tokens for user_id :',username,user_id);
-			Token.findOne({user_id: user_id}, function(err,tokenObject){
-				if (err){
-					console.log('[%s] No token found',username);
-					after(err, null);
-				} else {
-					console.log('[%s] token: ',username, tokenObject);
-
-					var oauth2Client = new OAuth2(
-						process.env.AUTH_GOOGLE_CLIENT_ID,
-						process.env.AUTH_GOOGLE_CLIENT_SECRET,
-						process.env.AUTH_GOOGLE_REDIRECT_URL);
-
-					oauth2Client.setCredentials({
-						access_token : tokenObject.accessToken,
-						refresh_token : tokenObject.refreshToken,
-						expiry_date : true
-					});
-
-					adsense = google.adsense({
-						version:'v1.4',
-						auth:oauth2Client
-					});
-
-					callback(null);
-				}
-			});
-		},		
-
-	
-		function retrieveAccountId(callback){
-			console.log('[%s] ##### Before Calling list',username);
-			adsense.accounts.list({maxResults:10},function(err,result){
-				if (err){
-					console.log('[%s] Error while retrieving accounts',username, err);
-					after(err, null);
-				} else {
-					//console.log('Accounts',result);
-					//console.log('My account',result.items[0]);
-					accountId = result.items[0].id;
-					console.log('[%s] AccountId retrieved: ',username,accountId);
-
-					callback(null,accountId);
-				}
+				callback(null,credentials);
 			});
 		},
-		function retrieveEarnings(accountId,callback){
 
-			console.log('[%s] ##### Before calling generate',username);
+		function authenticate(credentials,callback){
+			console.log('async authenticate');
+			var args = {
+		  		customerID : credentials.customerID, //'117819',
+		  		passphrase : credentials.passphrase, //'d5e28dcff286edb8a9ae135b1df7e07db4c85f87',
+		  		sandbox: false,
+		  		locale: 'fr_FR',
+		  		demo: false
+		  	};
+		  	soap.createClient(SOAP_URL, function createSoapClient(err, client) {
+		  		console.log('createSoapClient');
+		      	client.authenticate(args, function authenticate(err, result, raw, soapHeader) {
+		      		console.log('back from authenticate');
+		          	if (err) {
+		          		console.log('Error while authenticating',err);
+		          		after(err,null);
+		          	} 
 
-			var params  = {
-				startDate : googleApiDay,
-				endDate : googleApiDay,
-				accountId: accountId, 
-				useTimezoneReporting : true,
-				dimension: 'DATE',
-				metric: 'EARNINGS'
-			};   
+		          	client.setSecurity(new Cookie(client.lastResponseHeaders));
 
-			//console.log('[%s] oauth2Client',username,oauth2Client);
-			adsense.accounts.reports.generate(params,function(err,result){
-				if (err){
-					console.log('[%s] Error while getting earnings',username,err);
-					after(err, null);
-				} else {
-					console.log('[%s] Successfull',username);
-					//console.log('result',result);
-					callback(null, result);
-				}
+		          	callback(null,client);
+		         });
+		    }); 	
+		},
+
+		function getAffiliateSites(client,callback){
+			console.log('async getAffiliateSites');
+
+			var argsAS = {
+          		options: {}
+          	};
+
+          	client.getAffiliateSites(argsAS ,function retrieveAffiliateSites(err,result){
+          		if (err){
+          			console.log('Error while getting affiliate sites',err);
+          			res.send(err);
+          			return;
+          		}
+
+
+          		var affiliateSiteIds = [];
+          		if (Array.isArray(result.affiliateSites.item)){
+          			// several affiliate site ids
+          			console.log('affiliatesites item is an array');
+
+          			// according to this article https://coderwall.com/p/kvzbpa/don-t-use-array-foreach-use-for-instead
+          			// this basic 'for' is much faster than Array.forEach
+          			for (var i = 0; i < result.affiliateSites.item.length; i++) {
+          				console.log('item %s, affiliate site id %s',i,result.affiliateSites.item[i].ID.$value);
+          				affiliateSiteIds.push(result.affiliateSites.item[i].ID.$value);
+          			}
+
+
+          		} else {
+          			// only one affiliate site id
+          			console.log('affiliatesites item is NOT an array');
+          			console.log('affiliateSite id is %s',result.affiliateSites.item.ID.$value);
+          			affiliateSiteIds.push(result.affiliateSites.item.ID.$value);
+          		}			          	
+
+				callback(null,client,affiliateSiteIds);
+
 			});
-		}, function saveInDb(result,callback){
-			var adsenseIncome = new Income.Adsense ( { user_id: user_id, date: googleApiDay, income : result.totals[1]});
-			adsenseIncome.save(function(err){
-				if (err){
-					console.log('[%s] Error while saving adsense earnings into DB',username,err);
+		},
+
+		function retrieveEarnings(client,affiliateSiteIds,callback){
+			console.log('async retrieveEarnings');
+
+			
+			var totalEarnings = 0;      	
+      	
+			// for each affiliate site ids, get the earnings
+			async.eachOf(affiliateSiteIds,function getReportAffiliateSite(affiliateSiteId,index,afterEachEarning){
+			//affiliateSiteIds.forEach(function getReportAffiliateSite(affiliateSiteId,index){
+			
+				var argsRAS = {
+	          	 	affiliateSiteID : affiliateSiteId,
+	          	 	options : {
+						 dateFrom: tradetrackerApiDay,
+						 dateTo: tradetrackerApiDay
+	          		}
+	          	};
+
+	          	console.log("Trying to get earnings for affiliate site id %s",affiliateSiteId);
+
+	          	client.getReportAffiliateSite(argsRAS,function getEarningsForSite(err,report){
+	          		if (err){
+	          			console.log('Error while getting conversion transactions',err);
+	          			//res.send(err)					          			
+	          		} else {
+		          		console.log('value of index',index);
+		          		console.log('affiliateSiteIds array',affiliateSiteIds);
+		          		console.log("getReportAffiliateSite for site id [%s] : [%s]",affiliateSiteId,report);
+
+		          		var earnings = 0;
+		          		if (report){
+		          			earnings = report.reportAffiliateSite.totalCommission.$value;
+		          		}
+		          		console.log('Earned for site ID %s : %s',affiliateSiteId,earnings);
+		          		totalEarnings += earnings;
+					}
+					afterEachEarning();
+	          	});
+			},function (err){
+				console.log('After all earnings gotten');
+				console.log('Total earnings',totalEarnings);
+				callback(null,totalEarnings);
+			});
+		}, 
+
+		function saveInDb(result,callback){
+			var tradetrackerIncome = new Income.Tradetracker( { user_id: user_id, date: tradetrackerApiDay, income : result});
+			tradetrackerIncome.save(function(err){
+			if (err){
+					console.log('[%s] Error while saving tradetracker earnings into DB',username,err);
 					callback(null,result);
 				} else {
-					console.log('[%s] Successfully saved in DB',username);
+					console.log('[%s] Tradetracker earnings successfully saved in DB',username);
 					callback(null,result);
 				}
 			});
 		}
+
 	], function(err,result){
 		if (err){
-			console.log('[%s] final function err',username,err);
+			console.log('[%s] async final function err',username,err);
 			after('error',null);
 		} else {
-			console.log('[%s] final result',username,result);
+			// to add at the end of async.waterfall return funciton
+			console.log('[%s] async final result',username,result);
 			after(null,result);
 		}
 	});
-	**/
 };
-
 
 module.exports = {router ,getEarnings};

@@ -156,11 +156,15 @@ router.get('/earnings/:username',function(req,res){
 
 var getMonthEarnings = function(user_id,username,day,after){
 	console.log("######### getMonthEarnings BEGIN");
-	var daymonth = day.month() + 1;
-	console.log("Month [%s] with number [%s]",day.format('MMMM'),daymonth);
+	var monthNumber = day.month() + 1;
+	//console.log("Month [%s] with number [%s]",day.format('MMMM'),monthNumber);
 	Income.Adsense.aggregate([
+			// $project permet de créer un nouveau champ juste pour cet aggregate, appelé month. Appliqué à tous les documents
 			{$project:{user_id:1,date:1,income:1,month : {$month : "$date"}}},
-			{$match: { user_id : user_id, month: daymonth}},
+			// $match va donc matcher que les documents de user_id pour le mois 'month' créé auparavant
+			{$match: { user_id : user_id, month: monthNumber}},
+			// $group: obligé de mettre un _id car permet de grouper sur ce champ. 
+			// Peut être utilisé plus tard pour faire l'aggregate sur tous les users ou sur tous les mois, par exemple pour envoyer le total de chaque mois passé
 			{$group: { _id: "$user_id", total: {$sum: "$income"}}}
 		],
 		function(err,result){
@@ -169,8 +173,7 @@ var getMonthEarnings = function(user_id,username,day,after){
 				after(err,null);
 			} 
 				
-			console.log("Success with getMonthEearnings");
-			console.log("Result:",result);
+			console.log("Success with getMonthEearnings. Result: ",result);
 			after(null,result[0].total);
 		}
 	);
@@ -222,7 +225,6 @@ var getEarnings = function (user_id,username,day,after){
 				}
 			});
 		},		
-
 	
 		function retrieveAccountId(callback){
 			console.log('[%s] ##### Before Calling list',username);
@@ -240,6 +242,7 @@ var getEarnings = function (user_id,username,day,after){
 				}
 			});
 		},
+
 		function retrieveEarnings(accountId,callback){
 
 			console.log('[%s] ##### Before calling generate',username);
@@ -264,14 +267,16 @@ var getEarnings = function (user_id,username,day,after){
 					callback(null, result);
 				}
 			});
-		}, function saveInDb(result,callback){
+		}, 
+
+		function saveInDb(result,callback){
 			var adsenseIncome = new Income.Adsense ( { user_id: user_id, date: googleApiDay, income : result.totals[1]});
 			adsenseIncome.save(function(err){
 				if (err){
 					console.log('[%s] Error while saving adsense earnings into DB',username,err);
 					callback(null,result);
 				} else {
-					console.log('[%s] Successfully saved in DB',username);
+					console.log('[%s] Adsense earnings successfully saved in DB',username);
 					callback(null,result);
 				}
 			});
