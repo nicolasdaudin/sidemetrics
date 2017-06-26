@@ -175,7 +175,7 @@ const cronSendEmails = function() {
 	          					totalToday += incomeprovider.earnings.day;
 	          					totalMonth += incomeprovider.earnings.month;
 		          			}
-		          			mailHtml += '</p><p>Today (' + niceDay + '), you have earned a total of  <b>' + totalToday + ' €</b>. Enhorabuena, eres muy guap@<br>' +
+		          			mailHtml += '</p><p>Hoy (' + niceDay + ') has ganado en total <b>' + totalToday + ' €</b>. Enhorabuena, molas!! ;-) <br>' +
 		          				'Y ya has ganado <b>' + totalMonth + ' €</b> en lo que va de este mes de ' + monthname + '. Eres lo más... como lo haces?</p>';
 							
 							console.log('[%s] Final mail about to be sent:',mailHtml);
