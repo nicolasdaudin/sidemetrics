@@ -155,7 +155,7 @@ router.get('/earnings/:username',function(req,res){
 });
 
 var getMonthEarnings = function(user_id,username,day,after){
-	console.log("######### getMonthEarnings BEGIN");
+	console.log("######### getMonthEarnings ADSENSE BEGIN");
 	var monthNumber = day.month() + 1;
 	//console.log("Month [%s] with number [%s]",day.format('MMMM'),monthNumber);
 	Income.Adsense.aggregate([
@@ -173,7 +173,7 @@ var getMonthEarnings = function(user_id,username,day,after){
 				after(err,null);
 			} 
 				
-			console.log("Success with getMonthEearnings. Result: ",result);
+			console.log("Success with getMonthEearnings ADSENSE. Result: ",result);
 			after(null,result[0].total);
 		}
 	);
@@ -183,6 +183,8 @@ var getMonthEarnings = function(user_id,username,day,after){
 
 
 var getEarnings = function (user_id,username,day,after){
+
+	console.log("############### BEGIN ADSENSE GET EARNINGS");
 
 	var adsense;
 	var accountId;
@@ -201,9 +203,9 @@ var getEarnings = function (user_id,username,day,after){
 			Token.findOne({user_id: user_id}, function(err,tokenObject){
 				if (err){
 					console.log('[%s] No token found',username);
-					after(err, null);
+					callback(err, null);
 				} else {
-					console.log('[%s] token: ',username, tokenObject);
+					//console.log('[%s] token: ',username, tokenObject);
 
 					var oauth2Client = new OAuth2(
 						process.env.AUTH_GOOGLE_CLIENT_ID,
@@ -231,7 +233,7 @@ var getEarnings = function (user_id,username,day,after){
 			adsense.accounts.list({maxResults:10},function(err,result){
 				if (err){
 					console.log('[%s] Error while retrieving accounts',username, err);
-					after(err, null);
+					callback(err, null);
 				} else {
 					//console.log('Accounts',result);
 					//console.log('My account',result.items[0]);
@@ -260,7 +262,7 @@ var getEarnings = function (user_id,username,day,after){
 			adsense.accounts.reports.generate(params,function(err,result){
 				if (err){
 					console.log('[%s] Error while getting earnings',username,err);
-					after(err, null);
+					callback(err, null);
 				} else {
 					console.log('[%s] Successfull',username);
 					//console.log('result',result);
@@ -273,7 +275,7 @@ var getEarnings = function (user_id,username,day,after){
 			var adsenseIncome = new Income.Adsense ( { user_id: user_id, date: googleApiDay, income : result.totals[1]});
 			adsenseIncome.save(function(err){
 				if (err){
-					console.log('[%s] Error while saving adsense earnings into DB',username,err);
+					console.log('[%s] Error while saving adsense earnings into DB',username,err.errmsg);
 					callback(null,result);
 				} else {
 					console.log('[%s] Adsense earnings successfully saved in DB',username);
@@ -286,8 +288,8 @@ var getEarnings = function (user_id,username,day,after){
 			console.log('[%s] final function err',username,err);
 			after('error',null);
 		} else {
-			console.log('[%s] final result',username,result);
-			after(null,result);
+			//console.log('[%s] final result',username,result);
+			after(null,result.totals[1]);
 		}
 	});
 };

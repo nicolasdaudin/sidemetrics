@@ -11,6 +11,8 @@ var adsense = require ('./providers/adsense');
 var tradetracker = require ('./providers/tradetracker');
 var User = require('./models/user');
 
+var async = require ('async');
+
 
 
 
@@ -59,17 +61,19 @@ app.get('/wakeup',function(req,res){
 
 app.get('/cron/adsense',function(req,res){
 	console.log("CRON - MANUAL LAUNCH - BEGIN");
-	cronAdsense();
+	cronSendEmails();
 	console.log("CRON - MANUAL LAUNCH - END");
 });
 
-const cronAdsense = function() {
+const cronSendEmails = function() {
     // CRON STARTED
     var now = moment();
     console.log('CRON BEGIN at',now);
 
     var yesterday = moment().subtract(1,'days'); 
     var niceDay = yesterday.format('LL');
+    var monthname = yesterday.format('MMMM');
+
 
     // get all users
     User.findAllUsers(function(err,users){
@@ -78,7 +82,126 @@ const cronAdsense = function() {
     	} else {
 
 
-    		users.forEach(function(user){
+    		async.each(users,function(user,callbackEach){
+
+    			var username = user.username;
+    			/*if (username === 'jimena123'){
+    				console.log('TEST ==> NOT PROCESSING JIMENA123');
+    			} else {*/
+					console.log("[%s] ASYNC START",username);
+
+					// "Reflexive" getEarnings call work !!!!
+					// NOW: remove function getAdsenseEarning in async.parallel
+					// add getMonthEarning call in reflexive...
+					// voir comment gérer tous les résultats
+					
+					var incomeproviders = [{source:'Google Adsense',provider:adsense},{source:'TradeTracker',provider:tradetracker}];
+					async.each(incomeproviders,function(incomeprovider,callbackSmallEach){
+						var incomesource = incomeprovider.source;
+						console.log("[%s] BEGIN Earnings for ",username,incomesource);
+						incomeprovider.provider.getEarnings(user._id,username,yesterday,function(err,result){
+							if (err){
+								console.log("[%s] Back from getEarnings for %s with error: ",username,incomesource,err);
+							} else {
+								//var dayTotal = result.totals[1];
+								var dayTotal = result;
+								console.log("[%s] Back from getEarnings for day %s for %s with earnings: ",username,yesterday,incomesource,dayTotal);		
+								incomeprovider.earnings = {day : new Number(dayTotal)};
+								
+
+								incomeprovider.provider.getMonthEarnings(user._id,username,yesterday,function(err,monthTotal){
+									if (err){
+										console.log("[%s] Back from getMonthEarnings for %s with error: ",username,incomesource,err);										
+									} else {
+										
+										console.log("[%s] Back from getMonthEarnings for month %s for %s with earnings : ",username,monthname,incomesource,monthTotal);
+									
+										//callback(null,{ day : dayTotal, month: monthTotal});
+										incomeprovider.earnings.month = new Number(monthTotal);
+										callbackSmallEach();
+									}
+								});	
+
+							}	
+						});
+					},
+	    			
+	    			/*async.parallel([
+	    				function getAdsenseEarnings(callback){
+	    					console.log("[%s] ASYNC - get Adsense Earnings Trying to Getting Adsense earnings for user",username);
+			    			adsense.getEarnings(user._id,username,yesterday,function(err,result){
+								if (err){
+									console.log("[%s] Returned from getAdsenseEarnings with ERROR",username);			
+								} else {
+									var dayTotal = result.totals[1];
+									console.log("[%s] Google Adsense DAY earnings for %s : ",username,yesterday,dayTotal);		
+									
+
+									adsense.getMonthEarnings(user._id,username,yesterday,function(err,monthTotal){
+										if (err){
+											console.log("[%s] Returned from getMonthEarnings with ERROR",username);
+											return;
+										} else {
+											
+											console.log("[%s] Google Adsense MONTH earnings for %s : ",username,monthname,monthTotal);
+										
+											callback(null,{ day : dayTotal, month: monthTotal});
+										}
+									});	
+
+								}	
+							});
+	    				}
+	    				
+
+
+	    			],*/
+	    			function(err){
+	    				if (err) {
+	    					console.error('[%s] error:',username,err);
+	    				} else {
+		    				//console.log('[%s] earnings:',username,earnings);
+		    				console.log('[%s] earnings:',username,incomeproviders);
+		    				console.log('[%s] about to send email to',username,user.email);
+							var mailHtml = 'Querid@ ' + username +', eso es lo que has ganado hoy día ' + niceDay +'.<p>';
+							var totalToday = 0;
+							var totalMonth = 0;
+							for (var i = 0; i < incomeproviders.length; i++) {
+								var incomeprovider = incomeproviders[i];
+		          				var mailPhraseSource = '<b>' + incomeprovider.source + '</b> : ' + incomeprovider.earnings.day + 
+		          					' <i>(Total for ' + monthname  + ' : ' + incomeprovider.earnings.month + ')</i><br>';
+	          					console.log(mailPhraseSource);
+	          					mailHtml += mailPhraseSource;
+	          					totalToday += incomeprovider.earnings.day;
+	          					totalMonth += incomeprovider.earnings.month;
+		          			}
+		          			mailHtml += '</p><p>Today (' + niceDay + '), you have earned a total of  <b>' + totalToday + ' €</b>. Enhorabuena, eres muy guap@<br>' +
+		          				'Y ya has ganado <b>' + totalMonth + ' €</b> en lo que va de este mes de ' + monthname + '. Eres lo más... como lo haces?</p>';
+							
+							console.log('[%s] Final mail about to be sent:',mailHtml);
+
+							console.log('[%s] Mail about to be sent',username,mailHtml);
+							// setup email data with unicode symbols
+							var mailOptions = {
+							    from: '"Sidemetrics 📈❤️" <no-reply@sidemetrics.com>', // sender address
+							    to: user.email, 
+							    subject: 'Ganancias del dia ' + niceDay, // Subject line
+							    //text: mailText, // plain text body
+							    html: mailHtml // html body
+							};
+
+							// send mail with defined transport object
+							transporter.sendMail(mailOptions, function(err, info){
+							    if (err) {
+							        console.log("[%s] Email could not be sent. Error : ", username,err);			      
+							    } else {
+							    	console.log('[%s] Message %s sent: %s', username, info.messageId, info.response);
+							    }			    
+							});
+						}
+
+	    			});
+				//}
 
     			/* ideas for tradetracker
 
@@ -93,56 +216,10 @@ const cronAdsense = function() {
     			A la fin de tout ça, envoyer l'email. 
     			*/
     			
-    			var username = user.username;
-    			console.log("[%s] Trying to Getting Adsense earnings for user",username);
-    			adsense.getEarnings(user._id,username,yesterday,function(err,result){
-					if (err){
-						console.log("[%s] Returned from getAdsenseEarnings with ERROR",username);			
-					} else {
-						console.log("[%s] Google Adsense earnings of yesterday: ",username,result);		
-
-						// Trying to retrieve the total for the month
-						// Build a method in adsense.js file to retrieve sum of earnings for the month???
-						// like getMonthEarnings
-
-
-						adsense.getMonthEarnings(user._id,username,yesterday,function(err,monthlyTotal){
-							if (err){
-								console.log("[%s] Returned from getMonthEarnings with ERROR",username);
-								return;
-							} else {
-								var monthname = yesterday.format('MMMM');
-								console.log("[%s] Google Adsense MONTHLY earnings for [%s]: ",username,monthname,monthlyTotal);
-							
-								console.log('##### [%s] About to send the email to',username,user.email);
-
-								var earnings = result.totals[1];
-								//var mailText = 'Dear ' + user.username +', here is your income.\n\nGoogle Adsense : ' + earnings;
-								var mailHtml = 'Dear ' + user.username +', here is your income.' +
-									'<p><b>GoogleAdsense</b> : ' + earnings + ' <i>(Total for ' + monthname + ' : ' + monthlyTotal + ')</i></p>';
-
-								// setup email data with unicode symbols
-								var mailOptions = {
-								    from: '"Sidemetrics 📈❤️" <no-reply@sidemetrics.com>', // sender address
-								    to: user.email, 
-								    subject: 'Ganancias del dia ' + niceDay, // Subject line
-								    //text: mailText, // plain text body
-								    html: mailHtml // html body
-								};
-
-								// send mail with defined transport object
-								transporter.sendMail(mailOptions, function(err, info){
-								    if (err) {
-								        console.log("[%s] Email could not be sent. Error : ", username,err);			      
-								    } else {
-								    	console.log('[%s] Message %s sent: %s', username, info.messageId, info.response);
-								    }			    
-								});
-							}
-						});	
-
-					}	
-				});
+    			console.log("Just before calling callbackEach()");
+    			callbackEach();
+    			
+    			
 	    	});
     	}
     });
@@ -152,7 +229,7 @@ const cronAdsense = function() {
 // every minute: * */1 * * * 
 // every day at 2am : * * 2 * *
 // every day ar 4:35am: 4 35 * * *
-var task = cron.schedule('35 4 * * *', cronAdsense, true);
+var task = cron.schedule('35 4 * * *', cronSendEmails, true);
  
 
 
