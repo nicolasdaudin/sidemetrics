@@ -9,6 +9,21 @@ var moment = require ('moment');
 
 var adsense = require ('./providers/adsense');
 var tradetracker = require ('./providers/tradetracker');
+var moolineo = require ('./providers/moolineo');
+var loonea = require ('./providers/loonea');
+
+var Income = require('./models/income');
+var Credentials = require('./models/credentials');
+
+var getIncomeProviders = function (){  
+	return [
+		{source:'Google Adsense',dbname:'adsense',provider:adsense,credentials_model:Credentials.Adsense},
+		{source:'TradeTracker',dbname:'tradetracker',provider:tradetracker,credentials_model:Credentials.Tradetracker},
+		{source:'Moolineo',dbname:'moolineo',provider:moolineo,credentials_model:Credentials.Moolineo},
+		{source:'Loonea',dbname:'loonea',provider:loonea,credentials_model:Credentials.Loonea}
+	]
+};
+
 var User = require('./models/user');
 
 var async = require ('async');
@@ -37,6 +52,8 @@ app.use(bodyParser.urlencoded({ extended: true })); // for parsing
 
 app.use('/adsense',adsense.router);
 app.use('/tradetracker',tradetracker.router);
+app.use('/moolineo',moolineo.router);
+app.use('/loonea',loonea.router);
 
 app.get('/', function (req, res) {
   var homepageHtml = 
@@ -48,6 +65,10 @@ app.get('/', function (req, res) {
   		"<li><a href='/adsense/earnings/nicdo77'>Get Adsense earnings (nicdo77)</a></li>"+
   		"<li><a href='/tradetracker/earnings/nicdo77'>Get Tradetracker earnings for nicdo77</a></li>" +
   		"<li><a href='/tradetracker/earnings/jimena123'>Get Tradetracker earnings for jimena123</a></li>" +
+  		"<li><a href='/moolineo/earnings/nicdo77'>Get Moolineo earnings for nicdo77 for yesterday</a></li>" +
+  		"<li><a href='/loonea/earnings/nicdo77'>Get Loonea earnings for nicdo77 for yesterday</a></li>" +
+  		"<li><!--<a href='/historic/all/jimena123'>-->Get historical earnings for jimena123 (Soon!)<!--</a>--></li>" +
+  		"<li><!--<a href='/historic/all/nicdo77'>-->Get historical earnings for nicdo77 (Soon!)<!--</a>--></li>" +
   		"</ul>" +
   		"</div>";
   res.send(homepageHtml);
@@ -59,10 +80,47 @@ app.get('/wakeup',function(req,res){
 	console.log("Just woke up ;-) . Time now is : ",moment());
 });
 
+app.get('/historic/all/:username',function(req,res){
+	var username = req.params.username;
+	console.log('\n#[%s] trying to get historic earnings ',username);
+
+	User.findByUsername(username,function(err,user){
+		if (err){
+			console.log('Error while retrieving user',err);
+			callback(err,null);
+		} else {
+			console.log('user',user);
+
+			console.log('loop start');
+
+			var firstOfYear = moment().startOf('year');
+			var today = moment();
+			var tempday = firstOf2017;
+
+			while (!tempday.isSame(today,'day')){
+				console.log('tempday is %s - today is %s',tempday,today);
+				tempday.add(1,'days'); 
+			}
+
+			console.log('loop finished');
+			/*getEarnings(user._id,username,yesterday,function(err,result){
+				if (err){
+					console.log("Returned from getAdsenseEarnings with ERROR");
+					res.send("Returned from getAdsenseEarnings with ERROR");
+				} else {
+					console.log("FINAL  RESULT",result);
+					res.send("<p>FINAL RESULT</p>" + JSON.stringify(result));
+				}
+			});*/
+		}
+	});	
+});
+
 app.get('/cron/adsense',function(req,res){
 	console.log("CRON - MANUAL LAUNCH - BEGIN");
 	cronSendEmails();
 	console.log("CRON - MANUAL LAUNCH - END");
+	res.send('ONGOING, check logs');
 });
 
 const cronSendEmails = function() {
@@ -81,142 +139,111 @@ const cronSendEmails = function() {
     		console.log("Error while retrieving all users : ",err);
     	} else {
 
-
-    		async.each(users,function(user,callbackEach){
+    		async.eachSeries(users,function getInfoFromIncomeSource(user,callbackEach){
 
     			var username = user.username;
-    			/*if (username === 'jimena123'){
-    				console.log('TEST ==> NOT PROCESSING JIMENA123');
-    			} else {*/
-					console.log("[%s] ASYNC START",username);
+    		
+				//console.log("[%s] ASYNC START",username);
 
-					// "Reflexive" getEarnings call work !!!!
-					// NOW: remove function getAdsenseEarning in async.parallel
-					// add getMonthEarning call in reflexive...
-					// voir comment gérer tous les résultats
-					
-					var incomeproviders = [{source:'Google Adsense',provider:adsense},{source:'TradeTracker',provider:tradetracker}];
-					async.each(incomeproviders,function(incomeprovider,callbackSmallEach){
-						var incomesource = incomeprovider.source;
-						console.log("[%s] BEGIN Earnings for ",username,incomesource);
-						incomeprovider.provider.getEarnings(user._id,username,yesterday,function(err,result){
-							if (err){
-								console.log("[%s] Back from getEarnings for %s with error: ",username,incomesource,err);
-							} else {
-								//var dayTotal = result.totals[1];
-								var dayTotal = result;
-								console.log("[%s] Back from getEarnings for day %s for %s with earnings: ",username,yesterday,incomesource,dayTotal);		
-								incomeprovider.earnings = {day : new Number(dayTotal)};
-								
+				var incomeproviders = getIncomeProviders();				
+				
+				async.eachSeries(incomeproviders,function(incomeprovider,callbackSmallEach){
+					var incomesource = incomeprovider.source;
 
-								incomeprovider.provider.getMonthEarnings(user._id,username,yesterday,function(err,monthTotal){
-									if (err){
-										console.log("[%s] Back from getMonthEarnings for %s with error: ",username,incomesource,err);										
-									} else {
-										
-										console.log("[%s] Back from getMonthEarnings for month %s for %s with earnings : ",username,monthname,incomesource,monthTotal);
-									
-										//callback(null,{ day : dayTotal, month: monthTotal});
-										incomeprovider.earnings.month = new Number(monthTotal);
-										callbackSmallEach();
-									}
-								});	
+					// first check if the user uses that income source
+					// in each income provider, add a method to check if user has credentials !??? will be repetitive.... :-(
+					Credentials.userHasCredentials(user._id,username,incomesource,incomeprovider.credentials_model,function(err,hasCredentials){
+						if (!hasCredentials){
+							callbackSmallEach();
+						} else {
 
-							}	
-						});
-					},
-	    			
-	    			/*async.parallel([
-	    				function getAdsenseEarnings(callback){
-	    					console.log("[%s] ASYNC - get Adsense Earnings Trying to Getting Adsense earnings for user",username);
-			    			adsense.getEarnings(user._id,username,yesterday,function(err,result){
+							// the user does  use that income source.
+							//console.log("[%s] This user has credentials - BEGIN Earnings for ",username,incomesource);
+
+							// ONCE getEarnings only retrieves the earnings from DB (instead of also launching the 3rd party call)
+							// - getEarnings and getMonthEarnings could be done in parallel
+							// - and also, probably, getEarnings can retrieve earnings for day, month, year... all in one call. No?
+							incomeprovider.provider.getEarnings(user._id,username,yesterday,function(err,result){
 								if (err){
-									console.log("[%s] Returned from getAdsenseEarnings with ERROR",username);			
+									console.log("[%s] Back from getEarnings for %s with error: ",username,incomesource,err);
 								} else {
-									var dayTotal = result.totals[1];
-									console.log("[%s] Google Adsense DAY earnings for %s : ",username,yesterday,dayTotal);		
+									//var dayTotal = result.totals[1];
+									var dayTotal = result;
+									//console.log("[%s] Back from getEarnings for day %s for %s with earnings: ",username,yesterday,incomesource,dayTotal);		
+									incomeprovider.earnings = {day : new Number(dayTotal)};
 									
 
-									adsense.getMonthEarnings(user._id,username,yesterday,function(err,monthTotal){
+									incomeprovider.provider.getMonthEarnings(user._id,username,yesterday,function(err,monthTotal){
 										if (err){
-											console.log("[%s] Returned from getMonthEarnings with ERROR",username);
-											return;
+											console.log("[%s] Back from getMonthEarnings for %s with error: ",username,incomesource,err);										
 										} else {
 											
-											console.log("[%s] Google Adsense MONTH earnings for %s : ",username,monthname,monthTotal);
+											console.log("[%s] %s earnings for source %s : %s",username,monthname,incomesource,monthTotal);
 										
-											callback(null,{ day : dayTotal, month: monthTotal});
+											//callback(null,{ day : dayTotal, month: monthTotal});
+											incomeprovider.earnings.month = new Number(monthTotal);
+											callbackSmallEach();
 										}
 									});	
 
 								}	
 							});
-	    				}
-	    				
+						}
 
-
-	    			],*/
-	    			function(err){
-	    				if (err) {
-	    					console.error('[%s] error:',username,err);
-	    				} else {
-		    				//console.log('[%s] earnings:',username,earnings);
-		    				console.log('[%s] earnings:',username,incomeproviders);
-		    				console.log('[%s] about to send email to',username,user.email);
-							var mailHtml = 'Querid@ ' + username +', eso es lo que has ganado hoy día ' + niceDay +'.<p>';
-							var totalToday = 0;
-							var totalMonth = 0;
-							for (var i = 0; i < incomeproviders.length; i++) {
-								var incomeprovider = incomeproviders[i];
+						
+					});
+				},
+    			
+    			function sendEmails(err){
+    				if (err) {
+    					console.error('[%s] error:',username,err);
+    				} else {
+	    				//console.log('[%s] earnings:',username,earnings);
+	    				//console.log('[%s] earnings:',username,incomeproviders);
+	    				console.log('[%s] about to send email to',username,user.email);
+						var mailHtml = 'Querid@ ' + username +', eso es lo que has ganado hoy día ' + niceDay +'.<p>';
+						var totalToday = 0;
+						var totalMonth = 0;
+						for (var i = 0; i < incomeproviders.length; i++) {
+							
+							var incomeprovider = incomeproviders[i];
+		          			if (incomeprovider.earnings){
 		          				var mailPhraseSource = '<b>' + incomeprovider.source + '</b> : ' + incomeprovider.earnings.day + 
 		          					' <i>(Total for ' + monthname  + ' : ' + incomeprovider.earnings.month + ')</i><br>';
-	          					console.log(mailPhraseSource);
+	          					//console.log(mailPhraseSource);
 	          					mailHtml += mailPhraseSource;
 	          					totalToday += incomeprovider.earnings.day;
 	          					totalMonth += incomeprovider.earnings.month;
-		          			}
-		          			mailHtml += '</p><p>Hoy (' + niceDay + ') has ganado en total <b>' + totalToday + ' €</b>. Enhorabuena, molas!! ;-) <br>' +
-		          				'Y ya has ganado <b>' + totalMonth + ' €</b> en lo que va de este mes de ' + monthname + '. Eres lo más... como lo haces?</p>';
-							
-							console.log('[%s] Final mail about to be sent:',mailHtml);
+	          				}
+	          			}
+	          			mailHtml += '</p><p>Hoy (' + niceDay + ') has ganado en total <b>' + totalToday + ' €</b>. Enhorabuena, molas!! ;-) <br>' +
+	          				'Y ya has ganado <b>' + totalMonth + ' €</b> en lo que va de este mes de ' + monthname + '. Eres lo más... como lo haces?</p>';
+						
+						//console.log('[%s] Final mail about to be sent:',mailHtml);
 
-							console.log('[%s] Mail about to be sent',username,mailHtml);
-							// setup email data with unicode symbols
-							var mailOptions = {
-							    from: '"Sidemetrics 📈❤️" <no-reply@sidemetrics.com>', // sender address
-							    to: user.email, 
-							    subject: 'Ganancias del dia ' + niceDay, // Subject line
-							    //text: mailText, // plain text body
-							    html: mailHtml // html body
-							};
+						console.log('[%s] Mail about to be sent\n',username,mailHtml);
+						// setup email data with unicode symbols
+						var mailOptions = {
+						    from: '"Sidemetrics 📈❤️" <no-reply@sidemetrics.com>', // sender address
+						    to: user.email, 
+						    subject: 'Ganancias del dia ' + niceDay, // Subject line
+						    //text: mailText, // plain text body
+						    html: mailHtml // html body
+						};
 
-							// send mail with defined transport object
-							transporter.sendMail(mailOptions, function(err, info){
-							    if (err) {
-							        console.log("[%s] Email could not be sent. Error : ", username,err);			      
-							    } else {
-							    	console.log('[%s] Message %s sent: %s', username, info.messageId, info.response);
-							    }			    
-							});
-						}
+						// send mail with defined transport object
+						transporter.sendMail(mailOptions, function(err, info){
+						    if (err) {
+						        console.log("[%s] Email could not be sent to . Error : ", username,user.emailerr);			      
+						    } else {
+						    	console.log('[%s] Email successfully sent to',username,user.email);
+						    }			    
+						});
+					}
 
-	    			});
-				//}
-
-    			/* ideas for tradetracker
-
-    			Faire un async.forEach pour chaque user
-
-    			Faire un async.parallel pour :
-    			- adsense
-    			- tradetracker
-    			Dans chaque type d'income, faire un waterfall pour day earnings PUIS month earnings
-    			(on peut pas faire en parallèle car pour le moment c'est le getEarnings qui déclenche le retrieveEarnings depuis les APIs)
-
-    			A la fin de tout ça, envoyer l'email. 
-    			*/
+    			});
     			
-    			console.log("Just before calling callbackEach()");
+    			//console.log("Just before calling callbackEach()");
     			callbackEach();
     			
     			

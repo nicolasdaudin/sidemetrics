@@ -13,7 +13,7 @@ var findByUsername = function(username,callback){
 			console.log('User with username %s not found',username);
 			callback(err,null);
 		} else {
-			console.log('User with username %s found',username);
+			//console.log('User with username %s found',username);
 			callback(null,user);
 		}
 	});
