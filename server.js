@@ -11,6 +11,8 @@ var adsense = require ('./providers/adsense');
 var tradetracker = require ('./providers/tradetracker');
 var moolineo = require ('./providers/moolineo');
 var loonea = require ('./providers/loonea');
+var thinkaction = require ('./providers/thinkaction');
+var dgmax = require ('./providers/dgmax');
 
 var Income = require('./models/income');
 var Credentials = require('./models/credentials');
@@ -20,7 +22,9 @@ var getIncomeProviders = function (){
 		{source:'Google Adsense',dbname:'adsense',provider:adsense,credentials_model:Credentials.Adsense},
 		{source:'TradeTracker',dbname:'tradetracker',provider:tradetracker,credentials_model:Credentials.Tradetracker},
 		{source:'Moolineo',dbname:'moolineo',provider:moolineo,credentials_model:Credentials.Moolineo},
-		{source:'Loonea',dbname:'loonea',provider:loonea,credentials_model:Credentials.Loonea}
+		{source:'Loonea',dbname:'loonea',provider:loonea,credentials_model:Credentials.Loonea},
+		{source:'Thinkaction - Toluna',dbname:'thinkaction',provider:thinkaction,credentials_model:Credentials.Thinkaction},
+		{source:'DGMax Interactive (convertido a EUR)',dbname:'dgmax',provider:dgmax,credentials_model:Credentials.Dgmax}
 	]
 };
 
@@ -54,22 +58,33 @@ app.use('/adsense',adsense.router);
 app.use('/tradetracker',tradetracker.router);
 app.use('/moolineo',moolineo.router);
 app.use('/loonea',loonea.router);
+app.use('/thinkaction',thinkaction.router);
+app.use('/dgmax',dgmax.router);
 
 app.get('/', function (req, res) {
   var homepageHtml = 
   		"<div>" + 
-  		"<p>Hello World from SideMetrics</p>" + 
+  		"<h1>Welcome to Sidemetrics</h1>" + 
+  		"<h2 style='color:red'>New</h2>" + 
+  		"<ul>" + 
+  		"<li><a href='/dgmax/earnings/jimena123'>Get Dgmax earnings for jimena123</a></li>" + 
+  		"<li><a href='/thinkaction/earnings/nicdo77'>Get Thinkaction earnings for nicdo77</a></li>" +
+  		"</ul>" +
+  		"<h2>Working</h2>" + 
   		"<ul>"+
-  		"<li><a href='/cron/adsense'>Execute Adsense Cron</a></li>"+  		
+  		"<li><a href='/cron/all'>Execute Manually Cron</a></li>"+  		
   		"<li><a href='/adsense/connect/nicdo77'>Connect to Adsense (nicdo77)</a></li>"+  		
   		"<li><a href='/adsense/earnings/nicdo77'>Get Adsense earnings (nicdo77)</a></li>"+
   		"<li><a href='/tradetracker/earnings/nicdo77'>Get Tradetracker earnings for nicdo77</a></li>" +
   		"<li><a href='/tradetracker/earnings/jimena123'>Get Tradetracker earnings for jimena123</a></li>" +
   		"<li><a href='/moolineo/earnings/nicdo77'>Get Moolineo earnings for nicdo77 for yesterday</a></li>" +
   		"<li><a href='/loonea/earnings/nicdo77'>Get Loonea earnings for nicdo77 for yesterday</a></li>" +
-  		"<li><!--<a href='/historic/all/jimena123'>-->Get historical earnings for jimena123 (Soon!)<!--</a>--></li>" +
-  		"<li><!--<a href='/historic/all/nicdo77'>-->Get historical earnings for nicdo77 (Soon!)<!--</a>--></li>" +
-  		"</ul>" +
+  		"</ul>" + 
+  		"<h2>Soon</h2>" +   		
+  		"<!--<a href='/historic/all/jimena123'>-->Get historical earnings for jimena123 (Soon!)<!--</a>-->" +
+  		"<br>" + 
+  		"<!--<a href='/historic/all/nicdo77'>-->Get historical earnings for nicdo77 (Soon!)<!--</a>-->" +
+  		
   		"</div>";
   res.send(homepageHtml);
   console.log('Server time is : ', moment());
@@ -116,7 +131,7 @@ app.get('/historic/all/:username',function(req,res){
 	});	
 });
 
-app.get('/cron/adsense',function(req,res){
+app.get('/cron/all',function(req,res){
 	console.log("CRON - MANUAL LAUNCH - BEGIN");
 	cronSendEmails();
 	console.log("CRON - MANUAL LAUNCH - END");
@@ -201,7 +216,7 @@ const cronSendEmails = function() {
 	    				//console.log('[%s] earnings:',username,earnings);
 	    				//console.log('[%s] earnings:',username,incomeproviders);
 	    				console.log('[%s] about to send email to',username,user.email);
-						var mailHtml = 'Querid@ ' + username +', eso es lo que has ganado hoy día ' + niceDay +'.<p>';
+						var mailHtml = 'Querid@ ' + username +', aquí va el detalle de lo que has ganado ayer (' + niceDay +').<p>';
 						var totalToday = 0;
 						var totalMonth = 0;
 						for (var i = 0; i < incomeproviders.length; i++) {
@@ -216,12 +231,12 @@ const cronSendEmails = function() {
 	          					totalMonth += incomeprovider.earnings.month;
 	          				}
 	          			}
-	          			mailHtml += '</p><p>Hoy (' + niceDay + ') has ganado en total <b>' + totalToday + ' €</b>. Enhorabuena, molas!! ;-) <br>' +
-	          				'Y ya has ganado <b>' + totalMonth + ' €</b> en lo que va de este mes de ' + monthname + '. Eres lo más... como lo haces?</p>';
+	          			mailHtml += '</p><p>Ayer (' + niceDay + ') has ganado en total <b>' + totalToday.toFixed(2) + ' €</b>. Enhorabuena, molas!! ;-) <br>' +
+	          				'Y ya has ganado <b>' + totalMonth.toFixed(2) + ' €</b> en lo que va de este mes de ' + monthname + '. Eres lo más... como lo haces?</p>';
 						
 						//console.log('[%s] Final mail about to be sent:',mailHtml);
 
-						console.log('[%s] Mail about to be sent\n',username,mailHtml);
+						console.log('[%s] Mail about to be sent ==> ',username,mailHtml);
 						// setup email data with unicode symbols
 						var mailOptions = {
 						    from: '"Sidemetrics 📈❤️" <no-reply@sidemetrics.com>', // sender address

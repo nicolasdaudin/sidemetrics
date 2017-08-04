@@ -167,7 +167,7 @@ var getEarnings = function(user_id,username,day,after){
 		          		if (report){
 		          			earnings = report.reportAffiliateSite.totalCommission.$value;
 		          		}
-		          		console.log('Earned for site ID %s : %s',affiliateSiteId,earnings);
+		          		console.log('[%s] Earned for site ID %s : %s',username,affiliateSiteId,earnings);
 		          		totalEarnings += earnings;
 					}
 					afterEachEarning();
