@@ -144,7 +144,7 @@ const cronSendEmails = function() {
     console.log('CRON BEGIN at',now);
 
     var yesterday = moment().subtract(1,'days'); 
-    var niceDay = yesterday.format('LL');
+    var niceDay = yesterday.format('dddd DD MMMM YYYY');
     var monthname = yesterday.format('MMMM');
 
 
@@ -249,7 +249,7 @@ const cronSendEmails = function() {
 						// send mail with defined transport object
 						transporter.sendMail(mailOptions, function(err, info){
 						    if (err) {
-						        console.log("[%s] Email could not be sent to . Error : ", username,user.emailerr);			      
+						        console.log("[%s] Email could not be sent to %s. Error : ", username,user.email,err);			      
 						    } else {
 						    	console.log('[%s] Email successfully sent to',username,user.email);
 						    }			    
