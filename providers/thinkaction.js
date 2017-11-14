@@ -86,6 +86,7 @@ var getEarnings = function(user_id,username,day,after){
 		  		if (err) {
 		  			console.log('[%s] Error while createSoapClient : ',username,err);
 		  			callback(err,null);
+		  			return;
 		  		}
 		  		console.log('[%s] createSoapClient - about to call DailySummary with these args : ',username,args);
 		      	client.DailySummary(args, function getDailySummary(err, result, raw, soapHeader) {
