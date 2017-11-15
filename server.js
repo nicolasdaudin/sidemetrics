@@ -64,7 +64,7 @@ app.use('/dgmax',dgmax.router);
 app.get('/', function (req, res) {
   var homepageHtml = 
   		"<div>" + 
-  		"<h1>Welcome to Sidemetrics</h1>" + 
+  		"<h1>Welcome to Sidemetrics 0.2.0</h1>" + 
   		"<h2 style='color:red'>New</h2>" + 
   		"<ul>" + 
   		"<li><a href='/dgmax/earnings/jimena123'>Get Dgmax earnings for jimena123</a></li>" + 
@@ -181,6 +181,7 @@ const cronSendEmails = function() {
 							incomeprovider.provider.getEarnings(user._id,username,yesterday,function(err,result){
 								if (err){
 									console.log("[%s] Back from getEarnings for %s with error: ",username,incomesource,err);
+									callbackSmallEach();
 								} else {
 									//var dayTotal = result.totals[1];
 									var dayTotal = result;
