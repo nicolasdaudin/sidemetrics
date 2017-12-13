@@ -13,6 +13,7 @@ var moolineo = require ('./providers/moolineo');
 var loonea = require ('./providers/loonea');
 var thinkaction = require ('./providers/thinkaction');
 var dgmax = require ('./providers/dgmax');
+var daisycon = require('./providers/daisycon');
 
 var Income = require('./models/income');
 var Credentials = require('./models/credentials');
@@ -24,7 +25,9 @@ var getIncomeProviders = function (){
 		{source:'Moolineo',dbname:'moolineo',provider:moolineo,credentials_model:Credentials.Moolineo},
 		{source:'Loonea',dbname:'loonea',provider:loonea,credentials_model:Credentials.Loonea},
 		{source:'Thinkaction - Toluna',dbname:'thinkaction',provider:thinkaction,credentials_model:Credentials.Thinkaction},
-		{source:'DGMax Interactive (convertido a EUR)',dbname:'dgmax',provider:dgmax,credentials_model:Credentials.Dgmax}
+		{source:'DGMax Interactive (convertido a EUR)',dbname:'dgmax',provider:dgmax,credentials_model:Credentials.Dgmax},
+		{source:'Daisycon',dbname:'daisycon',provider:daisycon,credentials_model:Credentials.Daisycon}
+
 	]
 };
 
@@ -43,11 +46,11 @@ app.set('port', process.env.PORT || 3000);
 // create reusable transporter object using the default SMTP transport
 // it will only be possible if that email has "Less secured app authorized" enabled: https://www.google.com/settings/security/lesssecureapps 
 var transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: 'nicolas.ddn.fr@gmail.com',
-        pass: process.env.GMAIL_NODEMAILER_PWD
-    }
+	service: 'gmail',
+	auth: {
+		user: 'nicolas.ddn.fr@gmail.com',
+		pass: process.env.GMAIL_NODEMAILER_PWD
+	}
 });
 
 app.use(express.static('static'));
@@ -60,6 +63,7 @@ app.use('/moolineo',moolineo.router);
 app.use('/loonea',loonea.router);
 app.use('/thinkaction',thinkaction.router);
 app.use('/dgmax',dgmax.router);
+app.use('/daisycon',daisycon.router);
 
 app.get('/', function (req, res) {
   var homepageHtml = 
@@ -67,6 +71,7 @@ app.get('/', function (req, res) {
   		"<h1>Welcome to Sidemetrics 0.2.0</h1>" + 
   		"<h2 style='color:red'>New</h2>" + 
   		"<ul>" + 
+  		"<li><a href='/daisycon/earnings/nicdo77'>Get Daisycon earnings for nicdo77</a></li>" + 
   		"<li><a href='/dgmax/earnings/jimena123'>Get Dgmax earnings for jimena123</a></li>" + 
   		"<li><a href='/thinkaction/earnings/nicdo77'>Get Thinkaction earnings for nicdo77</a></li>" +
   		"</ul>" +
@@ -80,10 +85,10 @@ app.get('/', function (req, res) {
   		"<li><a href='/moolineo/earnings/nicdo77'>Get Moolineo earnings for nicdo77 for yesterday</a></li>" +
   		"<li><a href='/loonea/earnings/nicdo77'>Get Loonea earnings for nicdo77 for yesterday</a></li>" +
   		"</ul>" + 
-  		"<h2>Soon</h2>" +   		
-  		"<!--<a href='/historic/all/jimena123'>-->Get historical earnings for jimena123 (Soon!)<!--</a>-->" +
+  		"<h2>Test</h2>" +   		
+  		"<a href='/historic/all/180/nicdo77'>Get historical earnings for nicdo77 for the past 180 days (Soon!)</a>" +
   		"<br>" + 
-  		"<!--<a href='/historic/all/nicdo77'>-->Get historical earnings for nicdo77 (Soon!)<!--</a>-->" +
+  		"<!--<a href='/historic/all/180/jimena123'>-->Get historical earnings for jimena123 for the past 180 days (Soon!)<!--</a>-->" +
   		
   		"</div>";
   res.send(homepageHtml);
@@ -95,9 +100,10 @@ app.get('/wakeup',function(req,res){
 	console.log("Just woke up ;-) . Time now is : ",moment());
 });
 
-app.get('/historic/all/:username',function(req,res){
+app.get('/historic/all/:days/:username',function(req,res){
 	var username = req.params.username;
-	console.log('\n#[%s] trying to get historic earnings ',username);
+	var days = req.params.days;
+	console.log('[%s] trying to get historic earnings for the past %s days',username,days);
 
 	User.findByUsername(username,function(err,user){
 		if (err){
@@ -108,9 +114,11 @@ app.get('/historic/all/:username',function(req,res){
 
 			console.log('loop start');
 
-			var firstOfYear = moment().startOf('year');
+			
 			var today = moment();
-			var tempday = firstOf2017;
+			var tempday = moment().subtract(days,'days');
+
+			console.log('getting historic for past %s days, i.e. from %s until today',days,tempday);
 
 			while (!tempday.isSame(today,'day')){
 				console.log('tempday is %s - today is %s',tempday,today);
@@ -118,6 +126,7 @@ app.get('/historic/all/:username',function(req,res){
 			}
 
 			console.log('loop finished');
+			res.send("Yes got it!");
 			/*getEarnings(user._id,username,yesterday,function(err,result){
 				if (err){
 					console.log("Returned from getAdsenseEarnings with ERROR");

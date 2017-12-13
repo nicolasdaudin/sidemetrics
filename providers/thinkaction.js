@@ -57,7 +57,7 @@ var getEarnings = function(user_id,username,day,after){
 	async.waterfall([
 
 		function findCredentials(callback){
-			console.log('[%s] findCredentials',username);
+			console.log('[%s] Thinkaction - findCredentials',username);
 			Credentials.Thinkaction.findOne({user_id:user_id},function(err,credentials){
 				if (err){
 					console.log('err while getting Thinkaction credentials',err);
@@ -93,12 +93,14 @@ var getEarnings = function(user_id,username,day,after){
 					if (err) {
 		          		console.log('[%s] getDailySummary ERROR :',username,err.message);
 		          		callback(err,null);
-		          	} else {
-		          		//console.log("[%s] getDailySummary result : ",username,JSON.stringify(result));
-						totalEarnings = result.DailySummaryResult.days.day[0].revenue;
-						console.log('[%s] Thinkaction - Total earnings : ',username,totalEarnings);
-						callback(null,totalEarnings);						
-		          	}
+		          		return;
+		          	} 
+
+	          		//console.log("[%s] getDailySummary result : ",username,JSON.stringify(result));
+					totalEarnings = result.DailySummaryResult.days.day[0].revenue;
+					console.log('[%s] Thinkaction - Total earnings : ',username,totalEarnings);
+					callback(null,totalEarnings);						
+		          	
 		         });
 		    }); 	
 		},

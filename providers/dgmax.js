@@ -103,15 +103,17 @@ var getEarnings = function(user_id,username,day,after){
 					if (err) {
 		          		console.log('[%s] getDailySummary ERROR :',username,err.message);
 		          		callback(err,null);
-		          	} else {
-		          		console.log("[%s] getDailySummary result : ",username,JSON.stringify(result));
-						var totalEarningsUSD = result.DailySummaryResult.days.day[0].revenue;
-						console.log('[%s] Dgmax - Total earnings in USD: ',username,totalEarningsUSD);
-						var totalEarningsEUR = fx.convert(totalEarningsUSD,{ from:"USD", to: "EUR"});
-						//fx.convert(12.99, {from: "GBP", to: "HKD"});
-						console.log('[%s] Dgmax - Total earnings in EUR: ',username,totalEarningsEUR);
-						callback(null,totalEarningsEUR.toFixed(2));						
-		          	}
+		          		return;
+		          	} 
+	          		
+	          		console.log("[%s] getDailySummary result : ",username,JSON.stringify(result));
+					var totalEarningsUSD = result.DailySummaryResult.days.day[0].revenue;
+					console.log('[%s] Dgmax - Total earnings in USD: ',username,totalEarningsUSD);
+					var totalEarningsEUR = fx.convert(totalEarningsUSD,{ from:"USD", to: "EUR"});
+					//fx.convert(12.99, {from: "GBP", to: "HKD"});
+					console.log('[%s] Dgmax - Total earnings in EUR: ',username,totalEarningsEUR);
+					callback(null,totalEarningsEUR.toFixed(2));						
+		          	
 		         });
 		    }); 	
 		},

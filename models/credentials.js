@@ -34,12 +34,19 @@ var dgmaxCredentialsSchema = new mongoose.Schema({
   api_key : String 
 });
 
+var daisyconCredentialsSchema = new mongoose.Schema({
+  user_id: { type: mongoose.Schema.Types.ObjectId, unique: true, index: true },
+  username : String, 
+  password : String 
+});
+
 var Adsense =  mongoose.model('AdsenseCredentials', googleCredentialsSchema);
 var Tradetracker = mongoose.model('TradetrackerCredentials', tradetrackerCredentialsSchema);
 var Moolineo = mongoose.model('MoolineoCredentials',moolineoCredentialsSchema);
 var Loonea = mongoose.model('LooneaCredentials',looneaCredentialsSchema);
 var Thinkaction = mongoose.model('ThinkactionCredentials',thinkactionCredentialsSchema);
 var Dgmax = mongoose.model('DgmaxCredentials',dgmaxCredentialsSchema);
+var Daisycon = mongoose.model('DaisyconCredentials',daisyconCredentialsSchema);
 
 var userHasCredentials = function(userid,username, incomesource, incomemodel,callback){
 	incomemodel.findOne({user_id : userid},function (err,user){
@@ -59,4 +66,4 @@ var userHasCredentials = function(userid,username, incomesource, incomemodel,cal
 	});
 };
 
-module.exports = {Adsense,Tradetracker,Moolineo,Loonea,Thinkaction,Dgmax,userHasCredentials};
+module.exports = {Adsense,Tradetracker,Moolineo,Loonea,Thinkaction,Dgmax,Daisycon,userHasCredentials};

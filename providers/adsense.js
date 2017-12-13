@@ -134,8 +134,8 @@ router.get('/earnings/:username',function(req,res){
 			var yesterday = moment().subtract(1,'days'); 
 			getEarnings(user._id,username,yesterday,function(err,result){
 				if (err){
-					console.log("Returned from getAdsenseEarnings with ERROR");
-					res.send("Returned from getAdsenseEarnings with ERROR");
+					console.log("Returned from getEarnings (Adsense) with ERROR");
+					res.send("Returned from getEarnings (Adsense) with ERROR");
 				} else {
 					//console.log("FINAL  RESULT",result);
 					res.send("<p>FINAL RESULT</p>" + JSON.stringify(result));
