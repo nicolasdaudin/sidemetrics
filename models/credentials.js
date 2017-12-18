@@ -30,8 +30,8 @@ var thinkactionCredentialsSchema = new mongoose.Schema({
 
 var dgmaxCredentialsSchema = new mongoose.Schema({
   user_id: { type: mongoose.Schema.Types.ObjectId, unique: true, index: true },
-  affiliate_id : String, 
-  api_key : String 
+  email : String, 
+  password : String 
 });
 
 var daisyconCredentialsSchema = new mongoose.Schema({

@@ -69,7 +69,7 @@ var getEarnings = function(user_id,username,day,after){
 
 		function retrieveMoolineoEarnings(credentials,header,callback){
 			var url = credentials.access_url;
-			console.log('##### [%s] retrieveLooneaEarnings (URL is %s)',username,url);
+			console.log('##### [%s] retrieveMoolineoEarnings (URL is %s)',username,url);
 			
 			var totalEarnings = 0;      	
       	
@@ -86,6 +86,8 @@ var getEarnings = function(user_id,username,day,after){
 			     	argument: '{ "url" : "' + url + '" }'
 			    }
 			};
+
+			console.log('[%s] Moolineo : fetching results with Phantom Buster ........',username);
 
 			request(options, function (err, response, body) {
 				//console.log('[%s] Back from PhantomBuster call for Moolineo. Variable -body- is ',username,body);				

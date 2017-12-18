@@ -2,17 +2,18 @@ var express = require('express');
 
 var router = express.Router();
 
+var soap = require ('soap');
+var Cookie = require ('soap-cookie');
 var async = require ('async');
 
 var fx = require('money');
 fx.base = "EUR";
 fx.rates = {
-	"USD" : 1.17933, // 1 EUR === 1.17933 USD on 18 december 2017
+	"USD" : 1.188485, // 1 EUR === 1.188485 USD on 4th August 2017
 	"EUR" : 1        // always include the base rate (1:1)
 };
 
 var moment = require ('moment');
-var request = require("request");
 
 var User = require('../models/user');
 var Income = require('../models/income');
@@ -23,6 +24,7 @@ var Credentials = require('../models/credentials');
 //var Auth = require('../models/tradetrackerauth');
 
 
+const SOAP_URL = 'http://dgmaxinteractivenetwork.com/affiliates/api/2/reports.asmx?WSDL';
 
 
 // should only be called when the user tries to connect for the first time
@@ -54,7 +56,11 @@ var getEarnings = function(user_id,username,day,after){
 
 	console.log("############### [%s] BEGIN DGMAX GET EARNINGS",username);
 
-	var dgmaxApiDay = day.format('YYYY-MM-DD');
+	var dgmaxBeginDay = day.startOf('day').format('YYYY-MM-DDTHH:mm:ss');
+	var dgmaxEndDay = day.endOf('day').format('YYYY-MM-DDTHH:mm:ss');
+	var dgmaxInternalDay = day.format('YYYY-MM-DD');
+
+	console.log("[%s] dgmaxday begin [%s] end [%s]",username,dgmaxBeginDay,dgmaxEndDay);
 
 	async.waterfall([
 
@@ -69,63 +75,52 @@ var getEarnings = function(user_id,username,day,after){
 					console.log('user %s has no credentials for Dgmax, returning',username);
 					callback('no credentials',null);
 				} else {
-					callback(null,credentials,process.env.PHANTOM_BUSTER_API_KEY);
+					callback(null,credentials);
 				}	
 			});
 			//var credentials = { affiliate_id: '22307',api_key: 'RtZT2eY9eKYNbA8KVaqh5A'};
 			//callback(null,credentials);
 		},
 
-		function retrieveDgmaxEarnings(credentials,header,callback){
+		function retrieveDgmaxEarnings(credentials,callback){
 			
-			var totalEarnings = 0;
-
-			var email = credentials.email;
-			var password = credentials.password;
-			console.log('[%s] Dgmax credentials:',username,credentials);
-			
-			//var email = 'jimena@123dinero.com';
-			//var password = 'DBSgrds3d';
-			
-			var options = { method: 'POST',
-			  	url: 'https://phantombuster.com/api/v1/agent/5310/launch',
-			  	headers: {
-					'X-Phantombuster-Key-1': header
-				},
-			  	qs: { 
-			   		output: 'first-result-object',
-			     	argument: '{ "email" : "' + email + '","password" : "' + password + '" }'
-			    }
-			};
-
-			console.log('[%s] Dgmax : fetching results with Phantom Buster ........',username);
-
-			request(options, function (err, response, body) {
-				//console.log('[%s] Back from PhantomBuster call for Moolineo. Variable -body- is ',username,body);				
-
-			  	if (err) {
-			  		console.log('[%s] Error while retrieving Dgmax stuff',error);
-			  		callback(err,null);		  		
-			  	} 
-
-			  	if (!body) {
-			  		console.log('[%s] Error while retrieving Dgmax, body response is empty');
-			  		callback('empty body',null);
-			  	}
-
-			  	var result = JSON.parse(body);
-	
-			  	var totalEarningsUSD = result.data.resultObject.dgmaxEarningsYesterday;
-			  	console.log('[%s] Dgmax - Total earnings in USD: ',username,totalEarningsUSD);
-			  	var totalEarningsEUR = fx.convert(totalEarningsUSD,{ from:"USD", to: "EUR"});
-				console.log('[%s] Dgmax - Total earnings in EUR: ',username,totalEarningsEUR);
-			  	callback(null,totalEarningsEUR.toFixed(2));	
-			});	
+			var args = {
+		  		affiliate_id : credentials.affiliate_id, 
+		  		api_key : credentials.api_key, 
+		  		start_date : dgmaxBeginDay,
+		  		end_date : dgmaxEndDay,
+		  		offer_id : 0
+		  	};
+		  	console.log('[%s] SOAP_URL just before createSoapClient : ', username,SOAP_URL);
+		  	soap.createClient(SOAP_URL, function createSoapClient(err, client) {
+		  		if (err) {
+		  			console.log('[%s] Error while createSoapClient : ',username,err);
+		  			callback(err,null);
+		  			return;
+		  		}
+		  		console.log('[%s] createSoapClient - about to call DailySummary with these args : ',username,args);
+		      	client.DailySummary(args, function getDailySummary(err, result, raw, soapHeader) {
+					if (err) {
+		          		console.log('[%s] getDailySummary ERROR :',username,err.message);
+		          		callback(err,null);
+		          		return;
+		          	} 
+	          		
+	          		console.log("[%s] getDailySummary result : ",username,JSON.stringify(result));
+					var totalEarningsUSD = result.DailySummaryResult.days.day[0].revenue;
+					console.log('[%s] Dgmax - Total earnings in USD: ',username,totalEarningsUSD);
+					var totalEarningsEUR = fx.convert(totalEarningsUSD,{ from:"USD", to: "EUR"});
+					//fx.convert(12.99, {from: "GBP", to: "HKD"});
+					console.log('[%s] Dgmax - Total earnings in EUR: ',username,totalEarningsEUR);
+					callback(null,totalEarningsEUR.toFixed(2));						
+		          	
+		         });
+		    }); 	
 		},
 
 		function saveInDb(result,callback){
 			//console.log('async retrieveEarnings');
-			var dgmaxIncome = new Income.Dgmax( { user_id: user_id, date: dgmaxApiDay, income : result});
+			var dgmaxIncome = new Income.Dgmax( { user_id: user_id, date: dgmaxInternalDay, income : result});
 			dgmaxIncome.save(function(err){
 			if (err){
 					console.log('[%s] Error while saving dgmax earnings into DB',username,err.errmsg);

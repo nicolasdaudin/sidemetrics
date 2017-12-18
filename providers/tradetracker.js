@@ -53,7 +53,7 @@ var getEarnings = function(user_id,username,day,after){
 	async.waterfall([
 
 		function findCredentials(callback){
-			//console.log('[%s] async findCredentials',username);
+			console.log('[%s] Tradetracker findCredentials',username);
 			Credentials.Tradetracker.findOne({user_id:user_id},function(err,credentials){
 				if (err){
 					console.log('err while getting Tradetracker credentials',err);
@@ -70,7 +70,7 @@ var getEarnings = function(user_id,username,day,after){
 		},
 
 		function authenticate(credentials,callback){
-			//console.log('[%s] async authenticate',username);
+			console.log('[%s] Tradetracker authenticate',username);
 			var args = {
 		  		customerID : credentials.customerID, //'117819',
 		  		passphrase : credentials.passphrase, //'d5e28dcff286edb8a9ae135b1df7e07db4c85f87',
@@ -95,7 +95,7 @@ var getEarnings = function(user_id,username,day,after){
 		},
 
 		function getAffiliateSites(client,callback){
-			//console.log('[%s] async getAffiliateSites',username);
+			console.log('[%s] Tradetracker getAffiliateSites',username);
 
 			var argsAS = {
           		options: {}
@@ -108,11 +108,13 @@ var getEarnings = function(user_id,username,day,after){
           			return;
           		}
 
+          		console.log('[%s] Tradetracker retrieveAffiliateSites',username);
+
 
           		var affiliateSiteIds = [];
           		if (Array.isArray(result.affiliateSites.item)){
           			// several affiliate site ids
-          			//console.log('affiliatesites item is an array');
+          			
 
           			// according to this article https://coderwall.com/p/kvzbpa/don-t-use-array-foreach-use-for-instead
           			// this basic 'for' is much faster than Array.forEach
@@ -124,7 +126,7 @@ var getEarnings = function(user_id,username,day,after){
 
           		} else {
           			// only one affiliate site id
-          			//console.log('affiliatesites item is NOT an array');
+          			
           			//console.log('affiliateSite id is %s',result.affiliateSites.item.ID.$value);
           			affiliateSiteIds.push(result.affiliateSites.item.ID.$value);
           		}			          	
@@ -135,7 +137,7 @@ var getEarnings = function(user_id,username,day,after){
 		},
 
 		function retrieveTradetrackerEarnings(client,affiliateSiteIds,callback){
-			//console.log('async retrieveEarnings');
+			console.log('[%s] Tradetracker retrieveEarnings',username);
 
 			
 			var totalEarnings = 0;      	
@@ -180,7 +182,7 @@ var getEarnings = function(user_id,username,day,after){
 		}, 
 
 		function saveInDb(result,callback){
-			//console.log('async retrieveEarnings');
+			console.log('[%s] Tradetracker saveInDb',username);
 			var tradetrackerIncome = new Income.Tradetracker( { user_id: user_id, date: tradetrackerApiDay, income : result});
 			tradetrackerIncome.save(function(err){
 			if (err){
