@@ -71,9 +71,9 @@ app.get('/', function (req, res) {
   		"<h1>Welcome to Sidemetrics 0.2.0</h1>" + 
   		"<h2 style='color:red'>Ongoing</h2>" + 
   		"<ul>" + 
-  		"<li><a href='/adsense/historic/nicdo77/6'>Get 6 months historic earnings on Adsense for nicdo77</a></li>" + 
+  		"<li><a href='/thinkaction/historic/nicdo77/6'>Get 6 months historic earnings on Thinkaction for nicdo77 </a></li>" +
   		"</ul>" +
-  		"<h2>Working</h2>" + 
+  		"<h2>Working - Normal</h2>" + 
   		"<ul>"+
   		"<li><a href='/cron/all'>Execute Manually Cron</a></li>"+  		
   		"<li><a href='/adsense/connect/nicdo77'>Connect to Adsense (nicdo77)</a></li>"+  		
@@ -86,11 +86,10 @@ app.get('/', function (req, res) {
   		"<li><a href='/dgmax/earnings/jimena123'>Get Dgmax earnings for jimena123 for yesterday</a></li>" + 
   		"<li><a href='/thinkaction/earnings/nicdo77'>Get Thinkaction earnings for nicdo77 for yesterdat</a></li>" +
   		"</ul>" + 
-  		"<h2>Test</h2>" +   		
-  		"<a href='/historic/all/180/nicdo77'>Get historical earnings for nicdo77 for the past 180 days (Soon!)</a>" +
-  		"<br>" + 
-  		"<!--<a href='/historic/all/180/jimena123'>-->Get historical earnings for jimena123 for the past 180 days (Soon!)<!--</a>-->" +
-  		
+  		"<h2>Working - Historic</h2>" +   		
+  		"<ul>"+
+  		"<li><a href='/adsense/historic/nicdo77/6'>Get 6 months historic earnings on Adsense for nicdo77</a></li>" + 
+  		"</ul>" + 
   		"</div>";
   res.send(homepageHtml);
   console.log('Server time is : ', moment());

@@ -31,26 +31,55 @@ router.get('/earnings/:username',function(req,res){
 		} else {
 			//console.log('user',user);
 			var yesterday = moment().subtract(1,'days'); 
-			getEarnings(user._id,username,yesterday,function(err,result){
+			getEarnings(user._id,username,yesterday,yesterday,function(err,result){
 				if (err){
 					console.log("Returned from getEarnings (ThinkAction) with ERROR");
 					res.send("Returned from getEarnings (ThinkAction) with ERROR");
 				} else {
 					//console.log("FINAL  RESULT",result);
-					res.send("<p>FINAL RESULT CALCULATING.... </p>");
+					res.send("<p>FINAL RESULT</p>" + JSON.stringify(result));
 				}
 			});
 		}
 	});
 });
 
-var getEarnings = function(user_id,username,day,after){
+router.get('/historic/:username/:months',function(req,res){
+	var username = req.params.username;
+	var months = req.params.months;
+	console.log('\n##### [%s] trying to get Thinkaction historic earnings for the past %s months',username,months);
+
+	User.findByUsername(username,function(err,user){
+		if (err){
+			console.log('Error while retrieving user',err);
+			callback(err,null);
+		
+		} else {
+			
+			var today = moment();
+			var beginDay = moment().subtract(months,'months');
+
+			getEarnings(user._id,username,beginDay,today,function(err,result){
+				if (err){
+					console.log("Returned from getEarnings (ThinkAction) with ERROR");
+					res.send("Returned from getEarnings (Thinkaction) with ERROR");
+				} else {
+					//console.log("FINAL  RESULT",result);
+					res.send("<p>FINAL RESULT</p>" + JSON.stringify(result));
+				}
+			});
+
+		}
+	});	
+});
+
+var getEarnings = function(user_id,username,startDay,endDay,after){
 
 	console.log("############### [%s] BEGIN THINKACTION GET EARNINGS",username);
 
-	var thinkactionBeginDay = day.startOf('day').format('YYYY-MM-DDTHH:mm:ss');
-	var thinkactionEndDay = day.endOf('day').format('YYYY-MM-DDTHH:mm:ss');
-	var thinkactionInternalDay = day.format('YYYY-MM-DD');
+	var thinkactionBeginDay = startDay.startOf('day').format('YYYY-MM-DDTHH:mm:ss');
+	var thinkactionEndDay = endDay.endOf('day').format('YYYY-MM-DDTHH:mm:ss');
+	//var thinkactionInternalDay = startDay.format('YYYY-MM-DD');
 
 	console.log("[%s] thinkActionday begin [%s] end [%s]",username,thinkactionBeginDay,thinkactionEndDay);
 
@@ -96,10 +125,7 @@ var getEarnings = function(user_id,username,day,after){
 		          		return;
 		          	} 
 
-	          		//console.log("[%s] getDailySummary result : ",username,JSON.stringify(result));
-					totalEarnings = result.DailySummaryResult.days.day[0].revenue;
-					console.log('[%s] Thinkaction - Total earnings : ',username,totalEarnings);
-					callback(null,totalEarnings);						
+	          		callback(null,result);						
 		          	
 		         });
 		    }); 	
@@ -107,16 +133,25 @@ var getEarnings = function(user_id,username,day,after){
 
 		function saveInDb(result,callback){
 			//console.log('async retrieveEarnings');
-			var thinkactionIncome = new Income.Thinkaction( { user_id: user_id, date: thinkactionInternalDay, income : result});
-			thinkactionIncome.save(function(err){
-			if (err){
-					console.log('[%s] Error while saving thinkaction earnings into DB',username,err.errmsg);
-					callback(null,result);
-				} else {
-					//console.log('[%s] Thinkaction earnings successfully saved in DB',username);
-					callback(null,result);
-				}
+
+			
+			result.DailySummaryResult.days.day.forEach( function (item){
+				var tempDay = item.date;
+				var formatDay = moment(tempDay).format('YYYY-MM-DD');
+				var tempEarning = item.revenue;
+				//console.log('[%s] About to add in DB:',username,tempDay,formatDay,tempEarning);
+				var thinkactionIncome = new Income.Thinkaction ( { user_id: user_id, date: formatDay, income : tempEarning});
+				thinkactionIncome.save(function(err){
+					if (err){
+						console.log('[%s] Error while saving Thinkaction earnings (%s) into DB. Error : ',username,item,err.errmsg);
+						//callback(null,result);
+					} else {
+						console.log('[%s] Saved Thinkaction earnings in DB:',username,tempDay,formatDay,tempEarning);
+						//callback(null,result);
+					}
+				});
 			});
+
 		}
 
 	], function(err,result){
