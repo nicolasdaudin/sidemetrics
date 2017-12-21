@@ -69,11 +69,9 @@ app.get('/', function (req, res) {
   var homepageHtml = 
   		"<div>" + 
   		"<h1>Welcome to Sidemetrics 0.2.0</h1>" + 
-  		"<h2 style='color:red'>New</h2>" + 
+  		"<h2 style='color:red'>Ongoing</h2>" + 
   		"<ul>" + 
-  		"<li><a href='/daisycon/earnings/nicdo77'>Get Daisycon earnings for nicdo77</a></li>" + 
-  		"<li><a href='/dgmax/earnings/jimena123'>Get Dgmax earnings for jimena123</a></li>" + 
-  		"<li><a href='/thinkaction/earnings/nicdo77'>Get Thinkaction earnings for nicdo77</a></li>" +
+  		"<li><a href='/adsense/historic/nicdo77/6'>Get 6 months historic earnings on Adsense for nicdo77</a></li>" + 
   		"</ul>" +
   		"<h2>Working</h2>" + 
   		"<ul>"+
@@ -84,6 +82,9 @@ app.get('/', function (req, res) {
   		"<li><a href='/tradetracker/earnings/jimena123'>Get Tradetracker earnings for jimena123</a></li>" +
   		"<li><a href='/moolineo/earnings/nicdo77'>Get Moolineo earnings for nicdo77 for yesterday</a></li>" +
   		"<li><a href='/loonea/earnings/nicdo77'>Get Loonea earnings for nicdo77 for yesterday</a></li>" +
+  		"<li><a href='/daisycon/earnings/nicdo77'>Get Daisycon earnings for nicdo77 for yesterday</a></li>" + 
+  		"<li><a href='/dgmax/earnings/jimena123'>Get Dgmax earnings for jimena123 for yesterday</a></li>" + 
+  		"<li><a href='/thinkaction/earnings/nicdo77'>Get Thinkaction earnings for nicdo77 for yesterdat</a></li>" +
   		"</ul>" + 
   		"<h2>Test</h2>" +   		
   		"<a href='/historic/all/180/nicdo77'>Get historical earnings for nicdo77 for the past 180 days (Soon!)</a>" +

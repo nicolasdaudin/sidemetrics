@@ -132,7 +132,7 @@ router.get('/earnings/:username',function(req,res){
 		} else {
 			//console.log('user',user);
 			var yesterday = moment().subtract(1,'days'); 
-			getEarnings(user._id,username,yesterday,function(err,result){
+			getEarnings(user._id,username,yesterday,yesterday,function(err,result){
 				if (err){
 					console.log("Returned from getEarnings (Adsense) with ERROR");
 					res.send("Returned from getEarnings (Adsense) with ERROR");
@@ -145,35 +145,37 @@ router.get('/earnings/:username',function(req,res){
 	});	
 });
 
-var getMonthEarnings = function(user_id,username,day,after){
-	console.log("[%s] #### getMonthEarnings for Adsense",username);
-	var monthNumber = day.month() + 1;
-	//console.log("Month [%s] with number [%s]",day.format('MMMM'),monthNumber);
-	Income.Adsense.aggregate([
-			// $project permet de créer un nouveau champ juste pour cet aggregate, appelé month. Appliqué à tous les documents
-			{$project:{user_id:1,date:1,income:1,month : {$month : "$date"}}},
-			// $match va donc matcher que les documents de user_id pour le mois 'month' créé auparavant
-			{$match: { user_id : user_id, month: monthNumber}},
-			// $group: obligé de mettre un _id car permet de grouper sur ce champ. 
-			// Peut être utilisé plus tard pour faire l'aggregate sur tous les users ou sur tous les mois, par exemple pour envoyer le total de chaque mois passé
-			{$group: { _id: "$user_id", total: {$sum: "$income"}}}
-		],
-		function(err,result){
-			if (err){
-				console.log("Error",err);
-				after(err,null);
-			} 
-				
-			//console.log("Success with getMonthEearnings ADSENSE. Result: ",result);
-			after(null,result[0].total);
+router.get('/historic/:username/:months',function(req,res){
+	var username = req.params.username;
+	var months = req.params.months;
+	console.log('\n##### [%s] trying to get Adsense historic earnings for the past %s months',username,months);
+
+	User.findByUsername(username,function(err,user){
+		if (err){
+			console.log('Error while retrieving user',err);
+			callback(err,null);
+		
+		} else {
+			
+			var today = moment();
+			var beginDay = moment().subtract(months,'months');
+
+			getEarnings(user._id,username,beginDay,today,function(err,result){
+				if (err){
+					console.log("Returned from getEarnings (Adsense) with ERROR");
+					res.send("Returned from getEarnings (Adsense) with ERROR");
+				} else {
+					//console.log("FINAL  RESULT",result);
+					res.send("<p>FINAL RESULT</p>" + JSON.stringify(result));
+				}
+			});
+
 		}
-	);
-	//console.log("######### getMonthEarnings END");
-};
+	});	
+});
 
 
-
-var getEarnings = function (user_id,username,day,after){
+var getEarnings = function (user_id,username,startDay,endDay,after){
 
 	console.log("############### [%s] BEGIN ADSENSE GET EARNINGS",username);
 
@@ -181,7 +183,8 @@ var getEarnings = function (user_id,username,day,after){
 	var accountId;
 	
 
-	var googleApiDay = day.format('YYYY-MM-DD');
+	var googleApiStartDay = startDay.format('YYYY-MM-DD');
+	var googleApiEndDay = endDay.format('YYYY-MM-DD');
 	
 	async.waterfall([	
 
@@ -237,8 +240,8 @@ var getEarnings = function (user_id,username,day,after){
 			console.log('[%s] ##### retrieveAdsenseEarnings',username);
 
 			var params  = {
-				startDate : googleApiDay,
-				endDate : googleApiDay,
+				startDate : googleApiStartDay,
+				endDate : googleApiEndDay,
 				accountId: accountId, 
 				useTimezoneReporting : true,
 				dimension: 'DATE',
@@ -253,22 +256,29 @@ var getEarnings = function (user_id,username,day,after){
 				} else {
 					//console.log('[%s] Successfull',username);
 					//console.log('result',result);
+					//console.log('rows',result.rows[0]);
 					callback(null, result);
 				}
 			});
 		}, 
 
 		function saveAdsenseInDb(result,callback){
-			var adsenseIncome = new Income.Adsense ( { user_id: user_id, date: googleApiDay, income : result.totals[1]});
-			adsenseIncome.save(function(err){
-				if (err){
-					console.log('[%s] Error while saving adsense earnings into DB',username,err.errmsg);
-					callback(null,result);
-				} else {
-					//console.log('[%s] Adsense earnings successfully saved in DB',username);
-					callback(null,result);
-				}
+			result.rows.forEach( function (item){
+				var tempDay = item[0];
+				var tempEarning = item[1];
+				var adsenseIncome = new Income.Adsense ( { user_id: user_id, date: tempDay, income : tempEarning});
+				adsenseIncome.save(function(err){
+					if (err){
+						console.log('[%s] Error while saving adsense earnings (%s) into DB. Error : ',username,item,err.errmsg);
+						//callback(null,result);
+					} else {
+						//console.log('[%s] Adsense earnings successfully saved in DB',username);
+						//callback(null,result);
+					}
+				});
 			});
+			callback(null,result);
+			
 		}
 	], function(err,result){
 		if (err){
@@ -279,6 +289,32 @@ var getEarnings = function (user_id,username,day,after){
 			after(null,result.totals[1]);
 		}
 	});
+};
+
+var getMonthEarnings = function(user_id,username,day,after){
+	console.log("[%s] #### getMonthEarnings for Adsense",username);
+	var monthNumber = day.month() + 1;
+	//console.log("Month [%s] with number [%s]",day.format('MMMM'),monthNumber);
+	Income.Adsense.aggregate([
+			// $project permet de créer un nouveau champ juste pour cet aggregate, appelé month. Appliqué à tous les documents
+			{$project:{user_id:1,date:1,income:1,month : {$month : "$date"}}},
+			// $match va donc matcher que les documents de user_id pour le mois 'month' créé auparavant
+			{$match: { user_id : user_id, month: monthNumber}},
+			// $group: obligé de mettre un _id car permet de grouper sur ce champ. 
+			// Peut être utilisé plus tard pour faire l'aggregate sur tous les users ou sur tous les mois, par exemple pour envoyer le total de chaque mois passé
+			{$group: { _id: "$user_id", total: {$sum: "$income"}}}
+		],
+		function(err,result){
+			if (err){
+				console.log("Error",err);
+				after(err,null);
+			} 
+				
+			//console.log("Success with getMonthEearnings ADSENSE. Result: ",result);
+			after(null,result[0].total);
+		}
+	);
+	//console.log("######### getMonthEarnings END");
 };
 
 module.exports = {router, getEarnings, getMonthEarnings};
