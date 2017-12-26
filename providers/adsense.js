@@ -132,7 +132,7 @@ router.get('/earnings/:username',function(req,res){
 		} else {
 			//console.log('user',user);
 			var yesterday = moment().subtract(1,'days'); 
-			getEarnings(user._id,username,yesterday,yesterday,function(err,result){
+			getEarningsSeveralDays(user._id,username,yesterday,yesterday,function(err,result){
 				if (err){
 					console.log("Returned from getEarnings (Adsense) with ERROR");
 					res.send("Returned from getEarnings (Adsense) with ERROR");
@@ -160,7 +160,7 @@ router.get('/historic/:username/:months',function(req,res){
 			var today = moment();
 			var beginDay = moment().subtract(months,'months');
 
-			getEarnings(user._id,username,beginDay,today,function(err,result){
+			getEarningsSeveralDays(user._id,username,beginDay,today,function(err,result){
 				if (err){
 					console.log("Returned from getEarnings (Adsense) with ERROR");
 					res.send("Returned from getEarnings (Adsense) with ERROR");
@@ -174,8 +174,12 @@ router.get('/historic/:username/:months',function(req,res){
 	});	
 });
 
+var getEarnings = function (user_id,username,day,after){
+	getEarningsSeveralDays(user_id,username,day,day,after);
+}
 
-var getEarnings = function (user_id,username,startDay,endDay,after){
+
+var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 
 	console.log("############### [%s] BEGIN ADSENSE GET EARNINGS",username);
 
