@@ -138,8 +138,10 @@ var getEarningsSeveralDays = function(user_id,username,startDay,endDay,after){
 		function saveInDb(result,callback){
 			//console.log('async retrieveEarnings');
 
-			
+			var error = "";
+			var daysProcessed = 0;
 			result.DailySummaryResult.days.day.forEach( function (item){
+			
 				var tempDay = item.date;
 				var formatDay = moment(tempDay).format('YYYY-MM-DD');
 				var tempEarning = item.revenue;
@@ -147,21 +149,29 @@ var getEarningsSeveralDays = function(user_id,username,startDay,endDay,after){
 				var thinkactionIncome = new Income.Thinkaction ( { user_id: user_id, date: formatDay, income : tempEarning});
 				thinkactionIncome.save(function(err){
 					if (err){
-						console.log('[%s] Error while saving Thinkaction earnings (%s) into DB. Error : ',username,item,err.errmsg);
+						console.log('[%s] Error while saving Thinkaction earnings (%s) into DB. Error : ',username,JSON.stringify(item),err.errmsg);
+						error = error.concat('Error while saving Thinkaction earnings into DB for item ' + JSON.stringify(item) + '\n');
 						//callback(null,result);
 					} else {
 						console.log('[%s] Saved Thinkaction earnings in DB:',username,tempDay,formatDay,tempEarning);
 						//callback(null,result);
 					}
+
+					daysProcessed++;
+					if(daysProcessed === result.DailySummaryResult.days.day.length) {
+				      	callback(error,result);
+				    }
 				});
+				
 			});
+			
 
 		}
 
 	], function(err,result){
 		if (err){
 			console.log('[%s] async final function err',username,err);
-			after('error',null);
+			after('error',result);
 		} else {
 			// to add at the end of async.waterfall return funciton
 			//console.log('[%s] async final result',username,result);
