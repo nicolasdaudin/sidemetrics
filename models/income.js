@@ -46,6 +46,12 @@ var daisyconIncomeSchema = new mongoose.Schema({
   income: Number
 });
 
+var gamblingAffiliationIncomeSchema = new mongoose.Schema({
+  user_id : { type: mongoose.Schema.Types.ObjectId },
+  date : { type : Date },
+  income: Number
+});
+
 adsenseIncomeSchema.index({user_id:1,date:1}, {unique: true});
 tradetrackerIncomeSchema.index({user_id:1,date:1}, {unique: true});
 moolineoIncomeSchema.index({user_id:1,date:1}, {unique: true});
@@ -53,6 +59,7 @@ looneaIncomeSchema.index({user_id:1,date:1}, {unique: true});
 thinkactionIncomeSchema.index({user_id:1,date:1}, {unique: true});
 dgmaxIncomeSchema.index({user_id:1,date:1}, {unique: true});
 daisyconIncomeSchema.index({user_id:1,date:1}, {unique: true});
+gamblingAffiliationIncomeSchema.index({user_id:1,date:1}, {unique: true});
 
 
 var Adsense = mongoose.model('AdsenseIncome', adsenseIncomeSchema);
@@ -62,5 +69,6 @@ var Loonea = mongoose.model('LooneaIncome',looneaIncomeSchema);
 var Thinkaction = mongoose.model('ThinkactionIncome',thinkactionIncomeSchema);
 var Dgmax = mongoose.model('DgmaxIncome',dgmaxIncomeSchema);
 var Daisycon = mongoose.model('DaisyconIncome',daisyconIncomeSchema);
+var GamblingAffiliation = mongoose.model('GamblingAffiliationIncome',gamblingAffiliationIncomeSchema);
 
-module.exports = { Adsense, Tradetracker, Moolineo, Loonea, Thinkaction, Dgmax, Daisycon} ;
+module.exports = { Adsense, Tradetracker, Moolineo, Loonea, Thinkaction, Dgmax, Daisycon, GamblingAffiliation} ;

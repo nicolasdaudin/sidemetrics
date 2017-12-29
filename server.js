@@ -14,6 +14,7 @@ var loonea = require ('./providers/loonea');
 var thinkaction = require ('./providers/thinkaction');
 var dgmax = require ('./providers/dgmax');
 var daisycon = require('./providers/daisycon');
+var gamblingaffiliation = require('./providers/gamblingaffiliation');
 
 var Income = require('./models/income');
 var Credentials = require('./models/credentials');
@@ -26,7 +27,8 @@ var getIncomeProviders = function (){
 		{source:'Loonea',dbname:'loonea',provider:loonea,credentials_model:Credentials.Loonea},
 		{source:'Thinkaction - Toluna',dbname:'thinkaction',provider:thinkaction,credentials_model:Credentials.Thinkaction},
 		{source:'DGMax Interactive (convertido a EUR)',dbname:'dgmax',provider:dgmax,credentials_model:Credentials.Dgmax},
-		{source:'Daisycon',dbname:'daisycon',provider:daisycon,credentials_model:Credentials.Daisycon}
+		{source:'Daisycon',dbname:'daisycon',provider:daisycon,credentials_model:Credentials.Daisycon},
+		{source:'Gambling Affiliation',dbname:'gambling',provider:gamblingaffiliation,credentials_model:Credentials.GamblingAffiliation}
 
 	]
 };
@@ -64,6 +66,7 @@ app.use('/loonea',loonea.router);
 app.use('/thinkaction',thinkaction.router);
 app.use('/dgmax',dgmax.router);
 app.use('/daisycon',daisycon.router);
+app.use('/gamblingaffiliation',gamblingaffiliation.router);
 
 app.get('/', function (req, res) {
   var homepageHtml = 
@@ -71,7 +74,7 @@ app.get('/', function (req, res) {
   		"<h1>Welcome to Sidemetrics 0.2.0</h1>" + 
   		"<h2 style='color:red'>Ongoing</h2>" + 
   		"<ul>" + 
-  		"<li><a href='/thinkaction/historic/nicdo77/6'>Get 6 months historic earnings on Thinkaction for nicdo77 </a></li>" +
+  		"<li><a href='/gamblingaffiliation/earnings/nicdo77'>Get Gambling Affiliation Earnings for nicdo77 </a></li>" +
   		"</ul>" +
   		"<h2>Working - Normal</h2>" + 
   		"<ul>"+
@@ -89,6 +92,7 @@ app.get('/', function (req, res) {
   		"<h2>Working - Historic</h2>" +   		
   		"<ul>"+
   		"<li><a href='/adsense/historic/nicdo77/6'>Get 6 months historic earnings on Adsense for nicdo77</a></li>" + 
+  		"<li><a href='/thinkaction/historic/nicdo77/6'>Get 6 months historic earnings on Thinkaction for nicdo77 </a></li>" +
   		"</ul>" + 
   		"</div>";
   res.send(homepageHtml);
