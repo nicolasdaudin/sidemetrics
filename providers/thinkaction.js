@@ -14,7 +14,7 @@ var Income = require('../models/income');
 var Credentials = require('../models/credentials');
 
 //var Auth = require('../models/tradetrackerauth');
-
+var Curl = require( 'node-libcurl' ).Curl;
 
 const SOAP_URL = 'https://login.thinkaction.com/affiliates/api/2/reports.asmx?WSDL';
 
@@ -56,10 +56,10 @@ router.get('/historic/:username/:months',function(req,res){
 		
 		} else {
 			
-			var today = moment();
+			var yesterday = moment().subtract(1,'days'); 
 			var beginDay = moment().subtract(months,'months');
 
-			getEarningsSeveralDays(user._id,username,beginDay,today,function(err,result){
+			getEarningsSeveralDays(user._id,username,beginDay,yesterday,function(err,result){
 				if (err){
 					console.log("Returned from getEarnings (ThinkAction) with ERROR");
 					res.send("Returned from getEarnings (Thinkaction) with ERROR");
@@ -107,9 +107,9 @@ var getEarningsSeveralDays = function(user_id,username,startDay,endDay,after){
 
 		function retrieveThinkactionEarnings(credentials,callback){
 			
-			var args = {
-		  		affiliate_id : credentials.affiliate_id, //'117819',
-		  		api_key : credentials.api_key, //'d5e28dcff286edb8a9ae135b1df7e07db4c85f87',
+			/**var args = {
+		  		affiliate_id : credentials.affiliate_id, //'50008425',
+		  		api_key : credentials.api_key, //'HBPXuA72h0pNVW16Dzsuw',
 		  		start_date : thinkactionBeginDay,
 		  		end_date : thinkactionEndDay,
 		  		offer_id : 0
@@ -132,16 +132,72 @@ var getEarningsSeveralDays = function(user_id,username,startDay,endDay,after){
 	          		callback(null,result);						
 		          	
 		         });
-		    }); 	
+		    }); **/
+
+		    console.log('[%s] #### retrieveThinkactionEarnings', username);
+		    var curl = new Curl();
+
+			//const url = `https://services.daisycon.com/publishers/${publisherId}/statistics/date?start=${daisyconApiDay}&end=${daisyconApiDay}&page=1&per_page=100&smartview=transaction`;
+			const url = `https://login.thinkaction.com/affiliates/api/Reports/DailySummary?start_date=${thinkactionBeginDay}&end_date=${thinkactionEndDay}&api_key=${credentials.api_key}&affiliate_id=${credentials.affiliate_id}`
+			console.log(url);
+
+
+			curl.setOpt(Curl.option.URL,url);
+			//curl.setOpt(Curl.option.HTTPHEADER, [authheader,'Accept: application/json'] );
+			curl.setOpt(Curl.option.VERBOSE, true );
+
+			curl.on('end', function(statusCode,body,headers){
+				var result = JSON.parse(body);
+				console.log('[%s] Result from CURL call: ',username,result);
+				//var totalDay = result[0].transaction_open_amount + result[0].transaction_approved_amount + result[0].transaction_disapproved_amount;
+				//console.log('[%s] Earned with Daisycon : ',username,totalDay);	
+				callback(null,result);		
+			});
+
+			curl.on('error',function(err,errCode){
+				console.log('[%s] Error while getting publisher id',username,err);
+				callback(err,null);
+			});
+
+			curl.perform();
+
+
 		},
 
 		function saveInDb(result,callback){
 			//console.log('async retrieveEarnings');
 
+// [nicdo77] Result from CURL call:  { row_count: 32,
+//   data:
+//    [ { date: '2018-01-01T00:00:00',
+//        impressions: 0,
+//        clicks: 54,
+//        conversions: 12,
+//        conversions_int: 12,
+//        conversion_rate: 0.222222,
+//        revenue: 21.6,
+//        epc: 0.4,
+//        currency_symbol: '€',
+//        events: 0,
+//        lite_clicks: 0,
+//        total_lite_clicks: 0 },
+//      { date: '2018-01-02T00:00:00',
+//        impressions: 0,
+//        clicks: 109,
+//        conversions: 23,
+//        conversions_int: 23,
+//        conversion_rate: 0.211009,
+//        revenue: 41.4,
+//        epc: 0.379816,
+//        currency_symbol: '€',
+//        events: 0,
+//        lite_clicks: 0,
+//        total_lite_clicks: 0 },
+
 			var error = "";
 			var daysProcessed = 0;
-			if (result && result.DailySummaryResult && result.DailySummaryResult.days) {
-				result.DailySummaryResult.days.day.forEach( function (item){
+			if (result && result.data ) {
+				result.data.forEach( function (item){
 				
 					var tempDay = item.date;
 					var formatDay = moment(tempDay).format('YYYY-MM-DD');
@@ -164,7 +220,7 @@ var getEarningsSeveralDays = function(user_id,username,startDay,endDay,after){
 						}
 
 						daysProcessed++;
-						if(daysProcessed === result.DailySummaryResult.days.day.length) {
+						if(daysProcessed === result.data.length) {
 							//  ############# 
 							//      TODO
 							// ##############

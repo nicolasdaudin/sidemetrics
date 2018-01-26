@@ -157,10 +157,10 @@ router.get('/historic/:username/:months',function(req,res){
 		
 		} else {
 			
-			var today = moment();
+			var yesterday = moment().subtract(1,'days'); 
 			var beginDay = moment().subtract(months,'months');
 
-			getEarningsSeveralDays(user._id,username,beginDay,today,function(err,result){
+			getEarningsSeveralDays(user._id,username,beginDay,yesterday,function(err,result){
 				if (err){
 					console.log("Returned from getEarnings (Adsense) with ERROR");
 					res.send("Returned from getEarnings (Adsense) with ERROR");
