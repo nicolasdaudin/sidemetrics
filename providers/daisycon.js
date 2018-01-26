@@ -23,7 +23,7 @@ const PUBLISHERS_URL = 'https://services.daisycon.com/publishers?page=1&per_page
 
 // should only be called when the user tries to connect for the first time
 router.get('/earnings/:username',function(req,res){
-	console.log('\n##### [%s] get /adsense/earnings',req.params.username);	
+	console.log('\n##### [%s] get /daisycon/earnings',req.params.username);	
 	var username = req.params.username;
 
 	User.findByUsername(username,function(err,user){
@@ -47,10 +47,39 @@ router.get('/earnings/:username',function(req,res){
 });
 
 
+router.get('/historic/:username/:months',function(req,res){
+	
+	var username = req.params.username;
+	var months = req.params.months;
+	console.log('\n##### [%s] trying to get Daisycon historic earnings for the past %s months',username,months);
 
+	User.findByUsername(username,function(err,user){
+		if (err){
+			console.log('Error while retrieving user',err);
+			callback(err,null);
+		} else {
+			//console.log('user',user);
+			var yesterday = moment().subtract(1,'days'); 
+			var beginDay = moment().subtract(months,'months');
 
+			getEarningsSeveralDays(user._id,username,beginDay,yesterday,function(err,result){
+				if (err){
+					console.log("Returned from getEarnings (Daisycon) with ERROR");
+					res.send("Returned from getEarnings (Daisycon) with ERROR");
+				} else {
+					//console.log("FINAL  RESULT",result);
+					res.send("<p>FINAL RESULT</p>" + JSON.stringify(result));
+				}
+			});
+		}
+	});	
+});
 
 var getEarnings = function (user_id,username,day,after){
+	getEarningsSeveralDays(user_id,username,day,day,after);
+}
+
+var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 
 	console.log("############### [%s] BEGIN DAISYCON GET EARNINGS",username);
 
@@ -58,7 +87,8 @@ var getEarnings = function (user_id,username,day,after){
 	//var accountId;
 	
 
-	var daisyconApiDay = day.format('YYYY-MM-DD');
+	var daisyconApiStartDay = startDay.format('YYYY-MM-DD');
+	var daisyconApiEndDay = endDay.format('YYYY-MM-DD');
 	
 	async.waterfall([	
 
@@ -69,7 +99,7 @@ var getEarnings = function (user_id,username,day,after){
 					console.log('err while getting Daisycon credentials',err);
 					callback(err,null);
 				} else if (!credentials || (credentials.length === 0)){
-					// no credentials, this user is not connected to Thinkaction
+					// no credentials, this user is not connected to Daisycon
 					console.log('user %s has no credentials for Daisycon, returning',username);
 					callback('no credentials',null);
 				} else {
@@ -165,7 +195,7 @@ transaction_open_amount: 2.15,
 transaction_approved_amount: 0,
 transaction_disapproved_amount: 0 } ]*/
 
-			const url = `https://services.daisycon.com/publishers/${publisherId}/statistics/date?start=${daisyconApiDay}&end=${daisyconApiDay}&page=1&per_page=100&smartview=transaction`;
+			const url = `https://services.daisycon.com/publishers/${publisherId}/statistics/date?start=${daisyconApiStartDay}&end=${daisyconApiEndDay}&page=1&per_page=100&smartview=transaction`;
 			console.log(url);
 
 
@@ -173,11 +203,14 @@ transaction_disapproved_amount: 0 } ]*/
 			curl.setOpt(Curl.option.HTTPHEADER, [authheader,'Accept: application/json'] );
 			//curl.setOpt(Curl.option.VERBOSE, true );
 
+
+
 			curl.on('end', function(statusCode,body,headers){
 				var result = JSON.parse(body);
-				var totalDay = result[0].transaction_open_amount + result[0].transaction_approved_amount + result[0].transaction_disapproved_amount;
-				console.log('[%s] Earned with Daisycon : ',username,totalDay);	
-				callback(null,totalDay);		
+				//console.log('[%s] Result from CURL call: ',username,result);
+				//var totalDay = result[0].transaction_open_amount + result[0].transaction_approved_amount + result[0].transaction_disapproved_amount;
+				//console.log('[%s] Earned with Daisycon : ',username,totalDay);	
+				callback(null,result);		
 			});
 
 			curl.on('error',function(err,errCode){
@@ -188,17 +221,73 @@ transaction_disapproved_amount: 0 } ]*/
 			curl.perform();
 		}, 
 
-		function saveDaisyconInDb(earned,callback){
-			var daisyconIncome = new Income.Daisycon ( { user_id: user_id, date: daisyconApiDay, income : earned});
-			daisyconIncome.save(function(err){
-				if (err){
-					console.log('[%s] Error while saving Daisycon earnings into DB',username,err.errmsg);
-					callback(null,earned);
-				} else {
-					//console.log('[%s] Adsense earnings successfully saved in DB',username);
-					callback(null,earned);
-				}
-			});
+		function saveDaisyconInDb(result,callback){
+
+
+//https://services.daisycon.com/publishers/369190/statistics/date?start=2017-12-26&end=2018-01-25&page=1&per_page=100&smartview=transaction
+//[nicdo77] Result from CURL call:  [ { date: '2017-12-26',
+//    click_raw: 137,
+//    click_unique: 131,
+//    cpc_raw: 0,
+//    cpc_unique: 0,
+//    clickout_raw: 0,
+//    clickout_unique: 0,
+//    transaction_unique: 4,
+//    transaction_open: 0,
+//    transaction_open_parts: 0,
+//    transaction_approved: 4,
+//    transaction_approved_parts: 4,
+//    transaction_disapproved: 0,
+//    transaction_disapproved_parts: 0,
+//    transaction_revenue: 0,
+//    cpc_amount: 0,
+//    clickout_amount: 0,
+//    transaction_open_amount: 0,
+//    transaction_approved_amount: 3.74,
+//    transaction_disapproved_amount: 0 },
+//  { date: '2017-12-27',
+//    click_raw: 141,
+
+			var error = "";
+			var daysProcessed = 0;
+			if (result) {
+				result.forEach( function (item){
+				
+					var tempDay = item.date;
+					var tempEarning = item.transaction_open_amount + item.transaction_approved_amount + item.transaction_disapproved_amount;
+					//console.log('[%s] Daisycon Earnings - About to add in DB:',username,tempDay,tempEarning);
+					var daisyconIncome = new Income.Daisycon ( { user_id: user_id, date: tempDay, income : tempEarning});
+					daisyconIncome.save(function(err){
+						if (err){
+							
+							if (err.name && err.name === 'MongoError' && err.code === 11000){ 
+								console.log('[%s] DUPLICATE record while saving Daisycon earnings (%s) into DB.',username,JSON.stringify(item));
+							} else {
+								console.log('[%s] Error while saving Daisycon earnings (%s) into DB. Error : ',username,JSON.stringify(item),err.errmsg);
+								error = error.concat('Error while saving Daisycon earnings into DB for item ' + JSON.stringify(item) + '\n');
+								//callback(null,result);
+							}
+						} else {
+							console.log('[%s] Saved Daisycon earnings in DB:',username,tempDay,tempEarning);
+							//callback(null,result);
+						}
+
+						daysProcessed++;
+						if(daysProcessed === result.length) {
+							//  ############# 
+							//      TODO
+							// ##############
+							// This is wrong: only callbacks with the last earning. This would not work for several days
+							// but that's not the point. 
+							// once we separate cron to retrieve earnings and cron to send emails, we will be muuuuch better
+					      	callback(error,tempEarning);
+					    }
+					});
+					
+				});
+			} else {
+				callback(null,0);
+			}
 		}
 	], function(err,result){
 		if (err){

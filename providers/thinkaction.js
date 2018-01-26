@@ -106,38 +106,14 @@ var getEarningsSeveralDays = function(user_id,username,startDay,endDay,after){
 		},
 
 		function retrieveThinkactionEarnings(credentials,callback){
-			
-			/**var args = {
-		  		affiliate_id : credentials.affiliate_id, //'50008425',
-		  		api_key : credentials.api_key, //'HBPXuA72h0pNVW16Dzsuw',
-		  		start_date : thinkactionBeginDay,
-		  		end_date : thinkactionEndDay,
-		  		offer_id : 0
-		  	};
-		  	//console.log('[%s] SOAP_URL just before createSoapClient : ', username,SOAP_URL);
-		  	soap.createClient(SOAP_URL, function createSoapClient(err, client) {
-		  		if (err) {
-		  			console.log('[%s] Error while createSoapClient : ',username,err);
-		  			callback(err,null);
-		  			return;
-		  		}
-		  		console.log('[%s] createSoapClient - about to call DailySummary with these args : ',username,args);
-		      	client.DailySummary(args, function getDailySummary(err, result, raw, soapHeader) {
-					if (err) {
-		          		console.log('[%s] getDailySummary ERROR :',username,err.message);
-		          		callback(err,null);
-		          		return;
-		          	} 
-
-	          		callback(null,result);						
-		          	
-		         });
-		    }); **/
-
-		    console.log('[%s] #### retrieveThinkactionEarnings', username);
+			console.log('[%s] #### retrieveThinkactionEarnings', username);
 		    var curl = new Curl();
 
-			//const url = `https://services.daisycon.com/publishers/${publisherId}/statistics/date?start=${daisyconApiDay}&end=${daisyconApiDay}&page=1&per_page=100&smartview=transaction`;
+			// be careful, this is ES2015/ES6 notation (see https://stackoverflow.com/questions/3304014/javascript-variable-inside-string-without-concatenation-like-php)
+			// https://login.thinkaction.com/affiliates/api/Reports/DailySummary?start_date=2018-01-07&end_date=2018-01-08&api_key=HBPXuA72h0pNVW16Dzsuw&affiliate_id=50008425
+			// docs at https://login.thinkaction.com/affiliates/api/docs#!/DailySummary/Daily_Get
+
+
 			const url = `https://login.thinkaction.com/affiliates/api/Reports/DailySummary?start_date=${thinkactionBeginDay}&end_date=${thinkactionEndDay}&api_key=${credentials.api_key}&affiliate_id=${credentials.affiliate_id}`
 			console.log(url);
 
@@ -148,7 +124,7 @@ var getEarningsSeveralDays = function(user_id,username,startDay,endDay,after){
 
 			curl.on('end', function(statusCode,body,headers){
 				var result = JSON.parse(body);
-				console.log('[%s] Result from CURL call: ',username,result);
+				//console.log('[%s] Result from CURL call: ',username,result);
 				//var totalDay = result[0].transaction_open_amount + result[0].transaction_approved_amount + result[0].transaction_disapproved_amount;
 				//console.log('[%s] Earned with Daisycon : ',username,totalDay);	
 				callback(null,result);		
@@ -167,32 +143,6 @@ var getEarningsSeveralDays = function(user_id,username,startDay,endDay,after){
 		function saveInDb(result,callback){
 			//console.log('async retrieveEarnings');
 
-// [nicdo77] Result from CURL call:  { row_count: 32,
-//   data:
-//    [ { date: '2018-01-01T00:00:00',
-//        impressions: 0,
-//        clicks: 54,
-//        conversions: 12,
-//        conversions_int: 12,
-//        conversion_rate: 0.222222,
-//        revenue: 21.6,
-//        epc: 0.4,
-//        currency_symbol: '€',
-//        events: 0,
-//        lite_clicks: 0,
-//        total_lite_clicks: 0 },
-//      { date: '2018-01-02T00:00:00',
-//        impressions: 0,
-//        clicks: 109,
-//        conversions: 23,
-//        conversions_int: 23,
-//        conversion_rate: 0.211009,
-//        revenue: 41.4,
-//        epc: 0.379816,
-//        currency_symbol: '€',
-//        events: 0,
-//        lite_clicks: 0,
-//        total_lite_clicks: 0 },
 
 			var error = "";
 			var daysProcessed = 0;

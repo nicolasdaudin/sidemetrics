@@ -74,7 +74,7 @@ app.get('/', function (req, res) {
   		"<h1>Welcome to Sidemetrics 0.2.0</h1>" + 
   		"<h2 style='color:red'>Ongoing</h2>" + 
   		"<ul>" + 
-  		"<li><a href='/gamblingaffiliation/earnings/nicdo77'>Get Gambling Affiliation Earnings for nicdo77 </a></li>" +
+  		"<li><a href='/daisycon/historic/nicdo77/1'>Get 1 months historic earnings on Daisycon for nicdo77</a></li>" + 
   		"</ul>" +
   		"<h2>Working - Normal</h2>" + 
   		"<ul>"+
@@ -87,7 +87,8 @@ app.get('/', function (req, res) {
   		"<li><a href='/loonea/earnings/nicdo77'>Get Loonea earnings for nicdo77 for yesterday</a></li>" +
   		"<li><a href='/daisycon/earnings/nicdo77'>Get Daisycon earnings for nicdo77 for yesterday</a></li>" + 
   		"<li><a href='/dgmax/earnings/jimena123'>Get Dgmax earnings for jimena123 for yesterday</a></li>" + 
-  		"<li><a href='/thinkaction/earnings/nicdo77'>Get Thinkaction earnings for nicdo77 for yesterdat</a></li>" +
+  		"<li><a href='/thinkaction/earnings/nicdo77'>Get Thinkaction earnings for nicdo77 for yesterday</a></li>" +
+  		"<li><a href='/gamblingaffiliation/earnings/nicdo77'>Get Gambling Affiliation Earnings for nicdo77 </a></li>" +
   		"</ul>" + 
   		"<h2>Working - Historic</h2>" +   		
   		"<ul>"+
