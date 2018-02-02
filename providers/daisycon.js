@@ -33,7 +33,7 @@ router.get('/earnings/:username',function(req,res){
 		} else {
 			//console.log('user',user);
 			var yesterday = moment().subtract(1,'days'); 
-			getEarnings(user._id,username,yesterday,function(err,result){
+			getEarningsSeveralDays(user._id,username,yesterday,yesterday,function(err,result){
 				if (err){
 					console.log("Returned from getEarnings (Daisycon) with ERROR");
 					res.send("Returned from getEarnings (Daisycon) with ERROR");

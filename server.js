@@ -74,7 +74,7 @@ app.get('/', function (req, res) {
   		"<h1>Welcome to Sidemetrics 0.2.0</h1>" + 
   		"<h2 style='color:red'>Ongoing</h2>" + 
   		"<ul>" + 
-  		"<li><a href='/daisycon/historic/nicdo77/1'>Get 1 months historic earnings on Daisycon for nicdo77</a></li>" + 
+  		"<li><a href='/tradetracker/historic/nicdo77/1'>Get 1 months historic earnings on Tradetracker for nicdo77</a></li>" + 
   		"</ul>" +
   		"<h2>Working - Normal</h2>" + 
   		"<ul>"+
@@ -94,6 +94,7 @@ app.get('/', function (req, res) {
   		"<ul>"+
   		"<li><a href='/adsense/historic/nicdo77/6'>Get 6 months historic earnings on Adsense for nicdo77</a></li>" + 
   		"<li><a href='/thinkaction/historic/nicdo77/6'>Get 6 months historic earnings on Thinkaction for nicdo77 </a></li>" +
+  		"<li><a href='/daisycon/historic/nicdo77/1'>Get 1 months historic earnings on Daisycon for nicdo77</a></li>" + 
   		"</ul>" + 
   		"</div>";
   res.send(homepageHtml);

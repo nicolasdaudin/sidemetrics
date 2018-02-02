@@ -31,7 +31,7 @@ router.get('/earnings/:username',function(req,res){
 		} else {
 			//console.log('user',user);
 			var yesterday = moment().subtract(1,'days'); 
-			getEarnings(user._id,username,yesterday,function(err,result){
+			getEarningsSeveralDays(user._id,username,yesterday,yesterday,function(err,result){
 				if (err){
 					console.log("Returned from getEarnings (Tradetracker) with ERROR");
 					res.send("Returned from getEarnings (Tradetracker) with ERROR");
@@ -44,11 +44,44 @@ router.get('/earnings/:username',function(req,res){
 	});
 });
 
-var getEarnings = function(user_id,username,day,after){
+router.get('/historic/:username/:months',function(req,res){
+	
+	var username = req.params.username;
+	var months = req.params.months;
+	console.log('\n##### [%s] trying to get Tradetracker historic earnings for the past %s months',username,months);
+
+	User.findByUsername(username,function(err,user){
+		if (err){
+			console.log('Error while retrieving user',err);
+			callback(err,null);
+		} else {
+			//console.log('user',user);
+			var yesterday = moment().subtract(1,'days'); 
+			var beginDay = moment().subtract(months,'months');
+
+			getEarningsSeveralDays(user._id,username,beginDay,yesterday,function(err,result){
+				if (err){
+					console.log("Returned from getEarnings (Tradetracker) with ERROR");
+					res.send("Returned from getEarnings (Tradetracker) with ERROR");
+				} else {
+					//console.log("FINAL  RESULT",result);
+					res.send("<p>FINAL RESULT</p>" + JSON.stringify(result));
+				}
+			});
+		}
+	});	
+});
+
+var getEarnings = function (user_id,username,day,after){
+	getEarningsSeveralDays(user_id,username,day,day,after);
+}
+
+var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 
 	console.log("############### [%s] BEGIN TRADETRACKER GET EARNINGS",username);
 
-	var tradetrackerApiDay = day.format('YYYY-MM-DD');
+	var tradetrackerApiStartDay = startDay.format('YYYY-MM-DD');
+	var tradetrackerApiEndDay = endDay.format('YYYY-MM-DD');
 
 	async.waterfall([
 
@@ -149,8 +182,8 @@ var getEarnings = function(user_id,username,day,after){
 				var argsRAS = {
 	          	 	affiliateSiteID : affiliateSiteId,
 	          	 	options : {
-						 dateFrom: tradetrackerApiDay,
-						 dateTo: tradetrackerApiDay
+						 dateFrom: tradetrackerApiStartDay,
+						 dateTo: tradetrackerApiEndDay
 	          		}
 	          	};
 
@@ -163,7 +196,7 @@ var getEarnings = function(user_id,username,day,after){
 	          		} else {
 		          		//console.log('value of index',index);
 		          		//console.log('affiliateSiteIds array',affiliateSiteIds);
-		          		//console.log("getReportAffiliateSite for site id [%s] : [%s]",affiliateSiteId,report);
+		          		console.log("getReportAffiliateSite for site id [%s] : [%s]",affiliateSiteId,JSON.stringify(report));
 
 		          		var earnings = 0;
 		          		if (report){
@@ -183,7 +216,7 @@ var getEarnings = function(user_id,username,day,after){
 
 		function saveInDb(result,callback){
 			console.log('[%s] Tradetracker saveInDb',username);
-			var tradetrackerIncome = new Income.Tradetracker( { user_id: user_id, date: tradetrackerApiDay, income : result});
+			var tradetrackerIncome = new Income.Tradetracker( { user_id: user_id, date: tradetrackerApiStartDay, income : result});
 			tradetrackerIncome.save(function(err){
 			if (err){
 					console.log('[%s] Error while saving tradetracker earnings into DB',username,err.errmsg);
