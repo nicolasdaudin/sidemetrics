@@ -186,7 +186,7 @@ var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 						 dateTo: tradetrackerApiEndDay
 	          		}
 	          	};
-	          	// test branching
+	          	// test branching2
 	          	console.log("[%s] retrieveTradetrackerEarnings - affiliate site id %s",username,affiliateSiteId);
 
 	          	client.getReportAffiliateSite(argsRAS,function getEarningsForSite(err,report){
