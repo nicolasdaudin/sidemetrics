@@ -76,20 +76,17 @@ router.get('/historic/:username/:months',function(req,res){
 });
 
 var getEarnings = function (user_id,username,day,after){
+	console.log("############### [%s] Begin DAISYCON getEarnings for day %s",username,day);
 	getEarningsSeveralDays(user_id,username,day,day,after);
 }
 
 var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 
-	console.log("############### [%s] BEGIN DAISYCON GET EARNINGS",username);
-
-	//var adsense;
-	//var accountId;
-	
-
 	var daisyconApiStartDay = startDay.format('YYYY-MM-DD');
 	var daisyconApiEndDay = endDay.format('YYYY-MM-DD');
 	
+	console.log("############### [%s] Begin DAISYCON getEarningsSeveralDays for days BETWEEN %s and %s",username,daisyconApiStartDay,daisyconApiEndDay);
+
 	async.waterfall([	
 
 		function findCredentials(callback){
@@ -203,11 +200,15 @@ transaction_disapproved_amount: 0 } ]*/
 			curl.setOpt(Curl.option.HTTPHEADER, [authheader,'Accept: application/json'] );
 			//curl.setOpt(Curl.option.VERBOSE, true );
 
-
+			//http://localhost:5000/daisycon/earnings/jimena123
+			//16:27:32 debug.1   |  https://services.daisycon.com/publishers/382126/statistics/date?start=2018-02-04&end=2018-02-04&page=1&per_page=100&smartview=transaction
+			//CRON
+			//16:28:25 debug.1   |  https://services.daisycon.com/publishers/382126/statistics/date?start=2018-02-06&end=2018-02-06&page=1&per_page=100&smartview=transaction
 
 			curl.on('end', function(statusCode,body,headers){
+				//console.log('[%s] Result from CURL call: ',username,body);
 				var result = JSON.parse(body);
-				//console.log('[%s] Result from CURL call: ',username,result);
+				
 				//var totalDay = result[0].transaction_open_amount + result[0].transaction_approved_amount + result[0].transaction_disapproved_amount;
 				//console.log('[%s] Earned with Daisycon : ',username,totalDay);	
 				callback(null,result);		

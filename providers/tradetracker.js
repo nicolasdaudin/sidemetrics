@@ -83,7 +83,7 @@ var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 	var tradetrackerApiStartDay = startDay.format('YYYY-MM-DD');
 
 	// Tradetracker takes the day before end day so we have to force one day more.
-	var tradetrackerApiEndDay = endDay.add(1,'days').format('YYYY-MM-DD');
+	var tradetrackerApiEndDay = endDay.clone().add(1,'days').format('YYYY-MM-DD');
 
 	async.waterfall([
 
@@ -231,7 +231,7 @@ var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 		function saveInDb(earningsArray,callback){
 			console.log('[%s] Tradetracker saveInDb',username);
 
-			console.log('earningsArray',earningsArray);
+			//console.log('earningsArray',earningsArray);
 			var error = "";
 			var daysProcessed = 0;
 

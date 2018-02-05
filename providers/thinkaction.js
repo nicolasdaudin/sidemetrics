@@ -115,12 +115,12 @@ var getEarningsSeveralDays = function(user_id,username,startDay,endDay,after){
 
 
 			const url = `https://login.thinkaction.com/affiliates/api/Reports/DailySummary?start_date=${thinkactionBeginDay}&end_date=${thinkactionEndDay}&api_key=${credentials.api_key}&affiliate_id=${credentials.affiliate_id}`
-			console.log(url);
+			console.log('[%s] thinkAction url', username, url);
 
 
 			curl.setOpt(Curl.option.URL,url);
 			//curl.setOpt(Curl.option.HTTPHEADER, [authheader,'Accept: application/json'] );
-			curl.setOpt(Curl.option.VERBOSE, true );
+			//curl.setOpt(Curl.option.VERBOSE, true );
 
 			curl.on('end', function(statusCode,body,headers){
 				var result = JSON.parse(body);

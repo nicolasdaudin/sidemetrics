@@ -158,11 +158,12 @@ const cronSendEmails = function() {
     var now = moment();
     console.log('CRON BEGIN at',now);
 
+
     var yesterday = moment().subtract(1,'days'); 
     var niceDay = yesterday.format('dddd DD MMMM YYYY');
     var monthname = yesterday.format('MMMM');
 
-
+    console.log('CRON TO RETRIEVE EARNINGS FOR DAY',yesterday);
     // get all users
     User.findAllUsers(function(err,users){
     	if (err) { 
@@ -182,6 +183,7 @@ const cronSendEmails = function() {
 
 					// first check if the user uses that income source
 					// in each income provider, add a method to check if user has credentials !??? will be repetitive.... :-(
+
 					Credentials.userHasCredentials(user._id,username,incomesource,incomeprovider.credentials_model,function(err,hasCredentials){
 						if (!hasCredentials){
 							callbackSmallEach();
@@ -193,6 +195,7 @@ const cronSendEmails = function() {
 							// ONCE getEarnings only retrieves the earnings from DB (instead of also launching the 3rd party call)
 							// - getEarnings and getMonthEarnings could be done in parallel
 							// - and also, probably, getEarnings can retrieve earnings for day, month, year... all in one call. No?
+							console.log('######## CRON [%s] - about to check earnings for %s on day %s',username,incomesource,yesterday);
 							incomeprovider.provider.getEarnings(user._id,username,yesterday,function(err,result){
 								if (err){
 									console.log("[%s] Back from getEarnings for %s with error: ",username,incomesource,err);
