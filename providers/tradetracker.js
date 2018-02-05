@@ -30,7 +30,7 @@ router.get('/earnings/:username',function(req,res){
 			res.send('Error while retrieving user',err);
 		} else {
 			//console.log('user',user);
-			var yesterday = moment().subtract(1,'days'); 
+			var yesterday = moment().subtract(1,'days'); 			
 			getEarningsSeveralDays(user._id,username,yesterday,yesterday,function(err,result){
 				if (err){
 					console.log("Returned from getEarnings (Tradetracker) with ERROR");
@@ -48,7 +48,7 @@ router.get('/historic/:username/:months',function(req,res){
 	
 	var username = req.params.username;
 	var months = req.params.months;
-	console.log('\n##### [%s] trying to get Tradetracker historic earnings for the past %s months',username,months);
+	console.log('\n##### [%s] trying to get Tradetracker historic earningsArray for the past %s months',username,months);
 
 	User.findByUsername(username,function(err,user){
 		if (err){
@@ -72,7 +72,7 @@ router.get('/historic/:username/:months',function(req,res){
 	});	
 });
 
-var getEarnings = function (user_id,username,day,after){
+var getEarnings = function (user_id,username,day,after){	
 	getEarningsSeveralDays(user_id,username,day,day,after);
 }
 
@@ -81,7 +81,9 @@ var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 	console.log("############### [%s] BEGIN TRADETRACKER GET EARNINGS",username);
 
 	var tradetrackerApiStartDay = startDay.format('YYYY-MM-DD');
-	var tradetrackerApiEndDay = endDay.format('YYYY-MM-DD');
+
+	// Tradetracker takes the day before end day so we have to force one day more.
+	var tradetrackerApiEndDay = endDay.add(1,'days').format('YYYY-MM-DD');
 
 	async.waterfall([
 
@@ -173,59 +175,115 @@ var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 			console.log('[%s] Tradetracker retrieveEarnings',username);
 
 			
-			var totalEarnings = 0;      	
+			var earningsArray = [];
       	
-			// for each affiliate site ids, get the earnings
-			async.eachOf(affiliateSiteIds,function getReportAffiliateSite(affiliateSiteId,index,afterEachEarning){
-			//affiliateSiteIds.forEach(function getReportAffiliateSite(affiliateSiteId,index){
+			// for each affiliate site ids, get the earningsArray
+			async.eachOf(affiliateSiteIds,function getConversionTransactions(affiliateSiteId,index,afterEachEarning){
 			
-				var argsRAS = {
+			
+				var argsCT = {
 	          	 	affiliateSiteID : affiliateSiteId,
 	          	 	options : {
-						 dateFrom: tradetrackerApiStartDay,
-						 dateTo: tradetrackerApiEndDay
+						 registrationDateFrom: tradetrackerApiStartDay,
+						 registrationDateTo: tradetrackerApiEndDay
 	          		}
 	          	};
-	          	// test branching2
+	          	
 	          	console.log("[%s] retrieveTradetrackerEarnings - affiliate site id %s",username,affiliateSiteId);
 
-	          	client.getReportAffiliateSite(argsRAS,function getEarningsForSite(err,report){
+	          	client.getConversionTransactions(argsCT,function getEarningsForSite(err,report){
 	          		if (err){
-	          			console.log('Error while getting conversion transactions',err);
+	          			console.log('Error while getting conversion report',err);
 	          			//res.send(err)					          			
 	          		} else {
 		          		//console.log('value of index',index);
 		          		//console.log('affiliateSiteIds array',affiliateSiteIds);
-		          		console.log("getReportAffiliateSite for site id [%s] : [%s]",affiliateSiteId,JSON.stringify(report));
+		          		//console.log("getConversionTransactions for site id [%s] : [%s]",affiliateSiteId,JSON.stringify(report));
 
-		          		var earnings = 0;
-		          		if (report){
-		          			earnings = report.reportAffiliateSite.totalCommission.$value;
+		          		// TODO : on vient de rajouter && Report.conversionTransactions.item car sinon le earnings/nicdo77 (pour un seul jour) ne fonctionne pas
+		          		if (report && report.conversionTransactions && report.conversionTransactions.item){
+		          			report.conversionTransactions.item.forEach(function(transaction) {
+		          				var commission = new Number(transaction.commission.$value);
+		          				var formatDate = moment(transaction.registrationDate.$value).format('YYYY-MM-DD');
+							    //console.log('transaction - commission [%s] raw date [%s] formatted date [%s]',commission,trdate,formatDate);
+
+   								
+							    if (earningsArray[formatDate.toString()]) {
+							    	earningsArray[formatDate.toString()] += commission;
+							    } else {
+							    	earningsArray[formatDate.toString()] = 0 + commission;
+							    }
+
+							});
 		          		}
-		          		console.log('[%s] Earned for site ID %s : %s',username,affiliateSiteId,earnings);
-		          		totalEarnings += earnings;
+		          		//console.log('[%s] Earned for site ID %s : %s',username,affiliateSiteId,earningsArray);
+		          		//totalEarnings += earningsArray;
 					}
 					afterEachEarning();
 	          	});
 			},function (err){
-				//console.log('After all earnings gotten');
-				console.log('[%s] Tradetracker - Total earnings : ',username,totalEarnings);
-				callback(null,totalEarnings);
+				//console.log('After all earningsArray gotten');
+				//console.log('[%s] Tradetracker - Total earningsArray : ',username,totalEarnings);
+				callback(null,earningsArray);
 			});
 		}, 
 
-		function saveInDb(result,callback){
+		function saveInDb(earningsArray,callback){
 			console.log('[%s] Tradetracker saveInDb',username);
-			var tradetrackerIncome = new Income.Tradetracker( { user_id: user_id, date: tradetrackerApiStartDay, income : result});
-			tradetrackerIncome.save(function(err){
-			if (err){
-					console.log('[%s] Error while saving tradetracker earnings into DB',username,err.errmsg);
-					callback(null,result);
-				} else {
-					//console.log('[%s] Tradetracker earnings successfully saved in DB',username);
-					callback(null,result);
-				}
-			});
+
+			console.log('earningsArray',earningsArray);
+			var error = "";
+			var daysProcessed = 0;
+
+			if (earningsArray){
+				var earningDate = tradetrackerApiStartDay;
+				var continueLoop = true;
+
+				do { 
+					//console.log('ganado %s on %s',earningsArray[earningDate],earningDate);
+
+					var tempDay = moment(earningDate).format('YYYY-MM-DD');
+					
+
+					var commission = 0;
+					if (earningsArray[tempDay]){
+						commission = earningsArray[tempDay];
+					}
+					
+					var tempEarning = { day : tempDay, earned : commission};
+					if(moment(tempDay).isSame(tradetrackerApiEndDay)) {
+						//  ############# 
+						//      TODO
+						// ##############
+						// This is wrong: only callbacks with the last earning. This would not work for several days
+						// but that's not the point. 
+						// once we separate cron to retrieve earnings and cron to send emails, we will be muuuuch better
+				      	callback(error,commission);
+				      	continueLoop = false;
+				    } else {
+						var tradetrackerIncome = new Income.Tradetracker( { user_id: user_id, date: tempDay, income : commission});
+						tradetrackerIncome.save((function(err){
+							if (err){
+								
+								if (err.name && err.name === 'MongoError' && err.code === 11000){ 
+									console.log('[%s] DUPLICATE record while saving Tradetracker earnings (%s) into DB. Error: ',username,JSON.stringify(this),err.errmsg);
+								} else {
+									console.log('[%s] Error while saving Tradetracker earnings  (%s) into DB. Error : ',username,JSON.stringify(this),err.errmsg);
+									error = error.concat(err.errmsg+ '\n');
+									//callback(null,result);
+								}
+							} else {
+								console.log('[%s] Saved Tradetracker earnings in DB: (%s) ',username,JSON.stringify(this));
+								//callback(null,result);
+							}
+							
+						}).bind(tempEarning));
+					}
+					earningDate = moment(tempDay).add(1,'days').format('YYYY-MM-DD');
+				} while (continueLoop);
+				
+			}
+
 		}
 
 	], function(err,result){

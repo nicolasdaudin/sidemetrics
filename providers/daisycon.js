@@ -272,6 +272,7 @@ transaction_disapproved_amount: 0 } ]*/
 							//callback(null,result);
 						}
 
+						// this part is because forEach is asynch
 						daysProcessed++;
 						if(daysProcessed === result.length) {
 							//  ############# 
