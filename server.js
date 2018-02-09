@@ -6,6 +6,7 @@ var cron = require('node-cron');
 var nodemailer =require ('nodemailer');
 var mongoose = require('mongoose');
 var moment = require ('moment');
+moment.locale('es');
 
 var adsense = require ('./providers/adsense');
 var tradetracker = require ('./providers/tradetracker');
@@ -72,14 +73,14 @@ app.get('/', function (req, res) {
   var homepageHtml = 
   		"<div>" + 
   		"<h1>Welcome to Sidemetrics 0.2.0</h1>" + 
-  		"<h2 style='color:red'>Ongoing</h2>" + 
+  		"<h2 style='color:red'>Ongoing</h2>" +   		
   		"<ul>" + 
+		"<li><a href='/dashboard'>DASHBOARD</a></li>"+  
 		"<li><a href='/cron/fetchEarnings'>CRON fetchEarnings</a></li>"+  
 		"<li><a href='/cron/sendEmails'>CRON sendEmails</a></li>"+  
   		"</ul>" +
   		"<h2>Working - Normal</h2>" + 
   		"<ul>"+
-  		"<li><a href='/cron/all'>Execute Manually Cron</a></li>"+  		
   		"<li><a href='/adsense/connect/nicdo77'>Connect to Adsense (nicdo77)</a></li>"+  		
   		"<li><a href='/adsense/earnings/nicdo77'>Get Adsense earnings (nicdo77)</a></li>"+
   		"<li><a href='/tradetracker/earnings/nicdo77'>Get Tradetracker earnings for nicdo77</a></li>" +
@@ -102,6 +103,9 @@ app.get('/', function (req, res) {
   res.send(homepageHtml);
   console.log('Server time is : ', moment());
 });
+
+
+
 
 app.get('/wakeup',function(req,res){
 	res.send('Waking up');
@@ -227,6 +231,163 @@ const cronFetchEarnings = function(){
     });
 };
 
+var getUserEarningsByIncome = function(user,day,incomeprovider,callback){
+	var username = user.username;
+	console.log('[%s] begin getUserEarningsByIncome',username);
+	
+	var incomesource = incomeprovider.source;
+
+	// first check if the user uses that income source
+	Credentials.userHasCredentials(user._id,username,incomesource,incomeprovider.credentials_model,function(err,hasCredentials){
+		if (!hasCredentials){
+			callback();
+		} else {
+
+			// the user does use that income source.
+
+			// ONCE getEarnings only retrieves the earnings from DB (instead of also launching the 3rd party call)
+			// - getEarnings and getMonthEarnings could be done in parallel
+			// - and also, probably, getEarnings can retrieve earnings for day, month, year... all in one call. No?
+			
+			Income.getDayEarnings(user._id,username,day,incomesource,incomeprovider.income_model,function(err,result){
+				console.log('callback from getDayEarnings - result=%s - err=%s',JSON.stringify(result),err);
+				if (err){
+					console.log("[%s] server.js - Back from getDayEarnings for %s with error: ",username,incomesource,err);
+					callback();
+				} else {
+					console.log("[%s] Back from getDayEarnings for day %s for %s with earnings: ",username,day,incomesource,result.income);		
+
+					incomeprovider.earnings = {day : new Number(result.income)};
+				
+					Income.getMonthEarnings(user._id,username,day,incomesource,incomeprovider.income_model,function(err,result){
+						console.log('callback from getMonthEarnings - result=%s - err=%s',JSON.stringify(result),err);
+						if (err){
+							console.log("[%s] server.js - Back from getMonthEarnings for %s with error: ",username,incomesource,err);
+							callback();
+						} else {
+							console.log("[%s] Back from getMonthEarnings for day %s for %s with earnings: ",username,day,incomesource,result);		
+
+							incomeprovider.earnings.month = new Number(result);
+							callback();
+
+						}
+
+					});	
+
+				}
+
+			});	
+		}
+
+		
+	});
+};
+
+app.get('/dashboard',function(req,res){
+
+	console.log('ABOUT TO SHOW DASHBOARD FUCK YEAH !!!!!');
+
+
+    var yesterday = moment().subtract(1,'days'); 
+    var niceDay = yesterday.format('dddd DD MMMM YYYY');
+    var monthname = yesterday.format('MMMM');
+
+    var homepageHtml = 
+    	`<style> \
+    		body { \
+    			font-family : Helvetica,Arial,sans-serif; \
+    		}\
+  			thead { \
+			    background-color: #4CAF50; \
+			    color: white \
+			} \	
+			tfoot { \
+			    font-size:1.1em; \
+			    background-color: #f4c542; \
+			    color: white \
+			} \	
+			th, td { \
+			    padding: 5px 15px; \
+			    text-align: left; \
+			    border-bottom: 1px solid #ddd \
+			} \
+  		</style>` + 
+  		"<div>" + 
+  		"<h1>Sidemetrics 0.2.0 - Dashboard</h1>" + 
+  		`<h2>Ganancias de ayer (${niceDay})</h2>`;
+
+   
+    // get all users
+    User.findAllUsers(function(err,users){
+    	if (err) { 
+    		console.log("Error while retrieving all users : ",err);
+    	} else {
+
+    		async.eachSeries(users,function getUserEarnings(user,callbackEach){
+
+    			
+    			var username = user.username;
+				var incomeproviders = getIncomeProviders();				
+				
+				async.eachSeries(incomeproviders,function (incomeprovider,callbackSmallEach){
+					getUserEarningsByIncome(user,yesterday,incomeprovider,function(){
+						console.log('[%s] callback from getUserEarningsByIncome',username);
+						callbackSmallEach();
+					});
+				},    			
+    			function prepareResult(err){
+    				
+    				if (err) {
+    					console.error('[%s] error:',username,err);
+    				} else {
+	    				//console.log('[%s] earnings:',username,earnings);
+	    				//console.log('[%s] earnings:',username,incomeproviders);
+	    				console.log('[%s] preparing dashboard result',username);
+						var userHtml = `<h3>Usuario ${username}</h3>`+
+							`<table><thead><tr><th>Plataforma</th><th>Ayer</th><th><i>Total ${monthname}</i></th></tr></thead><tbody>`;
+						var totalToday = 0;
+						var totalMonth = 0;
+						for (var i = 0; i < incomeproviders.length; i++) {
+							
+							var incomeprovider = incomeproviders[i];
+							userHtml += '<tr>';
+		          			if (incomeprovider.earnings){		          				
+	          					//console.log(mailPhraseSource);
+	          					userHtml += `<td><b>${incomeprovider.source}</b></td>`+
+	          						`<td>${incomeprovider.earnings.day} €</td>` + 
+		          					`<td><i>${incomeprovider.earnings.month} €</i></td>`;
+	          					totalToday += incomeprovider.earnings.day;
+	          					totalMonth += incomeprovider.earnings.month;
+	          				}
+	          				userHtml += '</tr>';
+	          			}
+	          			userHtml += `</tbody><tfoot><tr><td>TOTAL GANANCIAS</td><td>${totalToday.toFixed(2)} €</td>` +
+	          				`<td>${totalMonth.toFixed(2)} €</td></tr></tfoot></table>`;
+						
+					
+
+						console.log('[%s] HTML Text in Dashboard ',username,userHtml);
+						
+						homepageHtml += userHtml;
+
+						//console.log('[%s] TEST - EMAIL SENT',username);
+						console.log("Just before calling callbackEach()");
+    					callbackEach();
+					}
+
+    			});
+	    	},
+	    	function final(){	
+	    		homepageHtml += 
+	    			"</div>" +
+	    			"<div><a href='/'>Go back to homepage</a></div>";
+	    		res.send(homepageHtml);
+	    	});
+    	}
+    });
+
+});
+
 
 const cronSendEmails = function() {
     // CRON STARTED
@@ -245,62 +406,20 @@ const cronSendEmails = function() {
     		console.log("Error while retrieving all users : ",err);
     	} else {
 
-    		async.eachSeries(users,function getInfoFromIncomeSource(user,callbackEach){
+    		async.eachSeries(users,function getUserEarnings(user,callbackEach){
 
+    			
     			var username = user.username;
-    		
 				var incomeproviders = getIncomeProviders();				
 				
-				async.eachSeries(incomeproviders,function(incomeprovider,callbackSmallEach){
-					var incomesource = incomeprovider.source;
-
-					// first check if the user uses that income source
-					Credentials.userHasCredentials(user._id,username,incomesource,incomeprovider.credentials_model,function(err,hasCredentials){
-						if (!hasCredentials){
-							callbackSmallEach();
-						} else {
-
-							// the user does use that income source.
-
-							// ONCE getEarnings only retrieves the earnings from DB (instead of also launching the 3rd party call)
-							// - getEarnings and getMonthEarnings could be done in parallel
-							// - and also, probably, getEarnings can retrieve earnings for day, month, year... all in one call. No?
-							
-							Income.getDayEarnings(user._id,username,yesterday,incomesource,incomeprovider.income_model,function(err,result){
-								console.log('getDayEarnings - result=%s - err=%s',JSON.stringify(result),err);
-								if (err){
-									console.log("[%s] server.js - Back from getDayEarnings for %s with error: ",username,incomesource,err);
-									callbackSmallEach();
-								} else {
-									console.log("[%s] Back from getDayEarnings for day %s for %s with earnings: ",username,yesterday,incomesource,result.income);		
-
-									incomeprovider.earnings = {day : new Number(result.income)};
-								
-									Income.getMonthEarnings(user._id,username,yesterday,incomesource,incomeprovider.income_model,function(err,result){
-										console.log('getMonthEarnings - result=%s - err=%s',JSON.stringify(result),err);
-										if (err){
-											console.log("[%s] server.js - Back from getMonthEarnings for %s with error: ",username,incomesource,err);
-											callbackSmallEach();
-										} else {
-											console.log("[%s] Back from getMonthEarnings for day %s for %s with earnings: ",username,yesterday,incomesource,result);		
-
-											incomeprovider.earnings.month = new Number(result);
-											callbackSmallEach();
-
-										}
-
-									});	
-
-								}
-
-							});	
-						}
-
-						
+				async.eachSeries(incomeproviders,function (incomeprovider,callbackSmallEach){
+					getUserEarningsByIncome(user,yesterday,incomeprovider,function(){
+						console.log('[%s] callback from getUserEarningsByIncome',username);
+						callbackSmallEach();
 					});
-				},
-    			
+				},    			
     			function sendEmails(err){
+    				
     				if (err) {
     					console.error('[%s] error:',username,err);
     				} else {
