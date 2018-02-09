@@ -76,7 +76,6 @@ router.get('/historic/:username/:months',function(req,res){
 });
 
 var getEarnings = function (user_id,username,day,after){
-	console.log("############### [%s] Begin DAISYCON getEarnings for day %s",username,day);
 	getEarningsSeveralDays(user_id,username,day,day,after);
 }
 

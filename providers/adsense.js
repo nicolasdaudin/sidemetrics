@@ -314,8 +314,12 @@ var getMonthEarnings = function(user_id,username,day,after){
 				after(err,null);
 			} 
 				
-			//console.log("Success with getMonthEearnings ADSENSE. Result: ",result);
-			after(null,result[0].total);
+			console.log("Success with getMonthEearnings ADSENSE. Result: ",result);
+			if (result && result[0]){
+				after(null,result[0].total);
+			} else {
+				after(null,0);
+			}
 		}
 	);
 	//console.log("######### getMonthEarnings END");

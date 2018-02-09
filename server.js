@@ -21,14 +21,14 @@ var Credentials = require('./models/credentials');
 
 var getIncomeProviders = function (){  
 	return [
-		{source:'Google Adsense',dbname:'adsense',provider:adsense,credentials_model:Credentials.Adsense},
-		{source:'TradeTracker',dbname:'tradetracker',provider:tradetracker,credentials_model:Credentials.Tradetracker},
-		{source:'Moolineo',dbname:'moolineo',provider:moolineo,credentials_model:Credentials.Moolineo},
-		{source:'Loonea',dbname:'loonea',provider:loonea,credentials_model:Credentials.Loonea},
-		{source:'Thinkaction - Toluna',dbname:'thinkaction',provider:thinkaction,credentials_model:Credentials.Thinkaction},
-		{source:'DGMax Interactive (convertido a EUR)',dbname:'dgmax',provider:dgmax,credentials_model:Credentials.Dgmax},
-		{source:'Daisycon',dbname:'daisycon',provider:daisycon,credentials_model:Credentials.Daisycon},
-		{source:'Gambling Affiliation',dbname:'gambling',provider:gamblingaffiliation,credentials_model:Credentials.GamblingAffiliation}
+		{source:'Google Adsense',dbname:'adsense',provider:adsense,credentials_model:Credentials.Adsense,income_model:Income.Adsense},
+		{source:'TradeTracker',dbname:'tradetracker',provider:tradetracker,credentials_model:Credentials.Tradetracker,income_model:Income.Tradetracker},
+		{source:'Moolineo',dbname:'moolineo',provider:moolineo,credentials_model:Credentials.Moolineo,income_model:Income.Moolineo},
+		{source:'Loonea',dbname:'loonea',provider:loonea,credentials_model:Credentials.Loonea,income_model:Income.Loonea},
+		{source:'Thinkaction - Toluna',dbname:'thinkaction',provider:thinkaction,credentials_model:Credentials.Thinkaction,income_model:Income.Thinkaction},
+		{source:'DGMax Interactive (convertido a EUR)',dbname:'dgmax',provider:dgmax,credentials_model:Credentials.Dgmax,income_model:Income.Dgmax},
+		{source:'Daisycon',dbname:'daisycon',provider:daisycon,credentials_model:Credentials.Daisycon,income_model:Income.Daisycon},
+		{source:'Gambling Affiliation',dbname:'gambling',provider:gamblingaffiliation,credentials_model:Credentials.GamblingAffiliation,income_model:Income.GamblingAffiliation}
 
 	]
 };
@@ -74,7 +74,8 @@ app.get('/', function (req, res) {
   		"<h1>Welcome to Sidemetrics 0.2.0</h1>" + 
   		"<h2 style='color:red'>Ongoing</h2>" + 
   		"<ul>" + 
-  		"<li><a href='/tradetracker/historic/nicdo77/1'>Get 1 months historic earnings on Tradetracker for nicdo77</a></li>" + 
+		"<li><a href='/cron/fetchEarnings'>CRON fetchEarnings</a></li>"+  
+		"<li><a href='/cron/sendEmails'>CRON sendEmails</a></li>"+  
   		"</ul>" +
   		"<h2>Working - Normal</h2>" + 
   		"<ul>"+
@@ -95,6 +96,7 @@ app.get('/', function (req, res) {
   		"<li><a href='/adsense/historic/nicdo77/6'>Get 6 months historic earnings on Adsense for nicdo77</a></li>" + 
   		"<li><a href='/thinkaction/historic/nicdo77/6'>Get 6 months historic earnings on Thinkaction for nicdo77 </a></li>" +
   		"<li><a href='/daisycon/historic/nicdo77/1'>Get 1 months historic earnings on Daisycon for nicdo77</a></li>" + 
+  		"<li><a href='/tradetracker/historic/nicdo77/1'>Get 1 months historic earnings on Tradetracker for nicdo77</a></li>" + 
   		"</ul>" + 
   		"</div>";
   res.send(homepageHtml);
@@ -147,23 +149,34 @@ app.get('/historic/all/:days/:username',function(req,res){
 });
 
 app.get('/cron/all',function(req,res){
-	console.log("CRON - MANUAL LAUNCH - BEGIN");
+	console.log("CRON ALL - MANUAL LAUNCH - BEGIN");
+	cronFetchEarnings();
 	cronSendEmails();
-	console.log("CRON - MANUAL LAUNCH - END");
 	res.send('ONGOING, check logs');
 });
 
-const cronSendEmails = function() {
-    // CRON STARTED
-    var now = moment();
-    console.log('CRON BEGIN at',now);
+app.get('/cron/fetchEarnings',function(req,res){
+	console.log("CRON FETCH EARNINGS - MANUAL LAUNCH");
+	cronFetchEarnings();
+	res.send('ONGOING, check logs');
+});
 
+app.get('/cron/sendEmails',function(req,res){
+	console.log("CRON SEND EMAILS - MANUAL LAUNCH");
+	cronSendEmails();
+	res.send('ONGOING, check logs');
+});
+
+const cronFetchEarnings = function(){
+	// CRON STARTED
+    var cronBegin = moment();
+    console.log('CRON FETCH EARNINGS - BEGIN at',cronBegin);
 
     var yesterday = moment().subtract(1,'days'); 
     var niceDay = yesterday.format('dddd DD MMMM YYYY');
     var monthname = yesterday.format('MMMM');
 
-    console.log('CRON TO RETRIEVE EARNINGS FOR DAY',yesterday);
+    console.log('CRON FETCH EARNINGS - FOR DAY',yesterday);
     // get all users
     User.findAllUsers(function(err,users){
     	if (err) { 
@@ -174,54 +187,113 @@ const cronSendEmails = function() {
 
     			var username = user.username;
     		
-				//console.log("[%s] ASYNC START",username);
-
 				var incomeproviders = getIncomeProviders();				
 				
 				async.eachSeries(incomeproviders,function(incomeprovider,callbackSmallEach){
 					var incomesource = incomeprovider.source;
 
 					// first check if the user uses that income source
-					// in each income provider, add a method to check if user has credentials !??? will be repetitive.... :-(
+					Credentials.userHasCredentials(user._id,username,incomesource,incomeprovider.credentials_model,function(err,hasCredentials){
+						if (!hasCredentials){
+							callbackSmallEach();
+						} else {
+							
+							incomeprovider.provider.getEarnings(user._id,username,yesterday,function(err,result){
+								if (err){
+									console.log("[%s] CRON FETCH EARNINGS - Back from getEarnings for %s with error: ",username,incomesource,err);
+									callbackSmallEach();
+								} else {
+									//var dayTotal = result.totals[1];
+									var dayTotal = result;
+									console.log("[%s] CRON FETCH EARNINGS - Back from getEarnings for day %s for %s with earnings: ",username,yesterday,incomesource,dayTotal);					
+									callbackSmallEach();
 
+								}	
+							});
+						}
+
+						
+					});
+				}, function afterAllProviders(){
+					callbackEach();
+				});
+	    	},
+	    	function afterAllUsers(){	
+	    		var cronEnd = moment();    		
+	    		var elapsed = cronEnd.diff(cronBegin,'s');
+	    		console.log('CRON FETCH EARNINGS - END at %s. Time elapsed: %s seconds',cronEnd,elapsed);
+	    	});
+    	}
+    });
+};
+
+
+const cronSendEmails = function() {
+    // CRON STARTED
+    var cronBegin = moment();
+    console.log('CRON SEND EMAILS - BEGIN at',cronBegin);
+
+
+    var yesterday = moment().subtract(1,'days'); 
+    var niceDay = yesterday.format('dddd DD MMMM YYYY');
+    var monthname = yesterday.format('MMMM');
+
+    console.log('CRON SEND EMAILS FOR DAY',yesterday);
+    // get all users
+    User.findAllUsers(function(err,users){
+    	if (err) { 
+    		console.log("Error while retrieving all users : ",err);
+    	} else {
+
+    		async.eachSeries(users,function getInfoFromIncomeSource(user,callbackEach){
+
+    			var username = user.username;
+    		
+				var incomeproviders = getIncomeProviders();				
+				
+				async.eachSeries(incomeproviders,function(incomeprovider,callbackSmallEach){
+					var incomesource = incomeprovider.source;
+
+					// first check if the user uses that income source
 					Credentials.userHasCredentials(user._id,username,incomesource,incomeprovider.credentials_model,function(err,hasCredentials){
 						if (!hasCredentials){
 							callbackSmallEach();
 						} else {
 
-							// the user does  use that income source.
-							//console.log("[%s] This user has credentials - BEGIN Earnings for ",username,incomesource);
+							// the user does use that income source.
 
 							// ONCE getEarnings only retrieves the earnings from DB (instead of also launching the 3rd party call)
 							// - getEarnings and getMonthEarnings could be done in parallel
 							// - and also, probably, getEarnings can retrieve earnings for day, month, year... all in one call. No?
-							console.log('######## CRON [%s] - about to check earnings for %s on day %s',username,incomesource,yesterday);
-							incomeprovider.provider.getEarnings(user._id,username,yesterday,function(err,result){
+							
+							Income.getDayEarnings(user._id,username,yesterday,incomesource,incomeprovider.income_model,function(err,result){
+								console.log('getDayEarnings - result=%s - err=%s',JSON.stringify(result),err);
 								if (err){
-									console.log("[%s] Back from getEarnings for %s with error: ",username,incomesource,err);
+									console.log("[%s] server.js - Back from getDayEarnings for %s with error: ",username,incomesource,err);
 									callbackSmallEach();
 								} else {
-									//var dayTotal = result.totals[1];
-									var dayTotal = result;
-									//console.log("[%s] Back from getEarnings for day %s for %s with earnings: ",username,yesterday,incomesource,dayTotal);		
-									incomeprovider.earnings = {day : new Number(dayTotal)};
-									
+									console.log("[%s] Back from getDayEarnings for day %s for %s with earnings: ",username,yesterday,incomesource,result.income);		
 
-									incomeprovider.provider.getMonthEarnings(user._id,username,yesterday,function(err,monthTotal){
+									incomeprovider.earnings = {day : new Number(result.income)};
+								
+									Income.getMonthEarnings(user._id,username,yesterday,incomesource,incomeprovider.income_model,function(err,result){
+										console.log('getMonthEarnings - result=%s - err=%s',JSON.stringify(result),err);
 										if (err){
-											console.log("[%s] Back from getMonthEarnings for %s with error: ",username,incomesource,err);										
-										} else {
-											
-											console.log("[%s] %s earnings for source %s : %s",username,monthname,incomesource,monthTotal);
-										
-											//callback(null,{ day : dayTotal, month: monthTotal});
-											incomeprovider.earnings.month = new Number(monthTotal);
+											console.log("[%s] server.js - Back from getMonthEarnings for %s with error: ",username,incomesource,err);
 											callbackSmallEach();
+										} else {
+											console.log("[%s] Back from getMonthEarnings for day %s for %s with earnings: ",username,yesterday,incomesource,result);		
+
+											incomeprovider.earnings.month = new Number(result);
+											callbackSmallEach();
+
 										}
+
 									});	
 
-								}	
-							});
+								}
+
+							});	
 						}
 
 						
@@ -259,7 +331,7 @@ const cronSendEmails = function() {
 						// setup email data with unicode symbols
 						var mailOptions = {
 						    from: '"Sidemetrics 📈❤️" <no-reply@sidemetrics.com>', // sender address
-						    to: user.email, 
+						    to: 'nicolas.daudin@gmail.com',//user.email, 
 						    subject: 'Ganancias del dia ' + niceDay, // Subject line
 						    //text: mailText, // plain text body
 						    html: mailHtml // html body
@@ -273,24 +345,26 @@ const cronSendEmails = function() {
 						    	console.log('[%s] Email successfully sent to',username,user.email);
 						    }			    
 						});
+						//console.log('[%s] TEST - EMAIL SENT',username);
+						console.log("Just before calling callbackEach()");
+    					callbackEach();
 					}
 
     			});
-    			
-    			//console.log("Just before calling callbackEach()");
-    			callbackEach();
-    			
-    			
+	    	},
+	    	function final(){	
+	    		var cronEnd = moment();    		
+	    		var elapsed = cronEnd.diff(cronBegin,'s');
+	    		console.log('CRON SEND EMAILS - END at %s. Time elapsed: %s seconds',cronEnd,elapsed);
 	    	});
     	}
     });
 };
 
 // CRON TO SEND EMAILS **/
-// every minute: * */1 * * * 
-// every day at 2am : * * 2 * *
-// every day ar 4:35am: 4 35 * * *
-var task = cron.schedule('35 4 * * *', cronSendEmails, true);
+var taskFetchEarnings = cron.schedule('18 15 * * *', cronFetchEarnings, true);
+var taskSendEmails = cron.schedule('21 15 * * *', cronSendEmails, true);
+
  
 
 

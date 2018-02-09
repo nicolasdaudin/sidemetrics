@@ -55,8 +55,8 @@ var Dgmax = mongoose.model('DgmaxCredentials',dgmaxCredentialsSchema);
 var Daisycon = mongoose.model('DaisyconCredentials',daisyconCredentialsSchema);
 var GamblingAffiliation = mongoose.model('GamblingAffiliationCredentials',gamblingAffiliationCredentialsSchema);
 
-var userHasCredentials = function(userid,username, incomesource, incomemodel,callback){
-	incomemodel.findOne({user_id : userid},function (err,user){
+var userHasCredentials = function(userid,username, incomesource, credentialsmodel,callback){
+	credentialsmodel.findOne({user_id : userid},function (err,user){
 		if (err) {
 			console.log('userHasCredentials [%s,%s] - There was an error',username,incomesource, err);
 			callback(err,false);
