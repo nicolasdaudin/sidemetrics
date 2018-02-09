@@ -362,8 +362,8 @@ const cronSendEmails = function() {
 };
 
 // CRON TO SEND EMAILS **/
-var taskFetchEarnings = cron.schedule('18 15 * * *', cronFetchEarnings, true);
-var taskSendEmails = cron.schedule('21 15 * * *', cronSendEmails, true);
+var taskFetchEarnings = cron.schedule('59 15 * * *', cronFetchEarnings, true);
+var taskSendEmails = cron.schedule('10 16 * * *', cronSendEmails, true);
 
  
 
