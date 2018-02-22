@@ -72,25 +72,21 @@ var Dgmax = mongoose.model('DgmaxIncome',dgmaxIncomeSchema);
 var Daisycon = mongoose.model('DaisyconIncome',daisyconIncomeSchema);
 var GamblingAffiliation = mongoose.model('GamblingAffiliationIncome',gamblingAffiliationIncomeSchema);
 
-var getDayEarnings = function(user_id,username, day, incomesource, incomemodel,callback){
+var getDayEarnings = function(user_id,username, begin,end, incomesource, incomemodel,callback){
   
-  var date = day.format('YYYY-MM-DD');
-  console.log('Income.getDayEarnings - args: user_id[%s],username[%s],day[%s],incomesource[%s]',user_id,username,date,incomesource);
-  incomemodel.findOne({user_id : user_id, date: new Date(date)},function (err,result){
-    // result is of type 'model'. Don't ask why, it's the way it appears when we debug...
-    if (err) {
-      console.log('[%s] ERROR for getDayEarnings for day %s and source %s :',username,day,incomesource, err);
-      callback(err,false);
-    } else if (result && result._doc){
-
-      console.log('[%s] getDayEarnings for day %s and source %s is',username,day,incomesource,result);
-      callback(null,result._doc);
-    } else {
-      //result is empty
-      console.log('[%s] getDayEarnings for day %s and source %s is 0',username,day,incomesource);
-      callback(null,{income:0});
-    }
-  });
+	var beginDate = begin.format('YYYY-MM-DD');
+	var endDate = end.format('YYYY-MM-DD');
+	console.log('Income.getDayEarnings - args: username[%s],begin[%s],end[%s],incomesource[%s]',username,beginDate,endDate,incomesource);
+	incomemodel.find({user_id : user_id, date: {$gte : new Date(beginDate), $lte:new Date(endDate)}},function (err,result){
+      // result is of type 'model'. Don't ask why, it's the way it appears when we debug...
+      	if (err) {
+      		console.log('[%s] ERROR for getDayEarnings between %s and %s, for source %s :',username,beginDate,endDate,incomesource, err);
+      		callback(err,false);
+      	} else {
+      		console.log('[%s] getDayEarnings between %s and %s, for source %s. Income is',username,beginDate,endDate,incomesource,result);
+      		callback(null,result);
+      	} 
+  	});
 };
 
 var getMonthEarnings = function(user_id,username, day, incomesource, incomemodel,callback){
