@@ -93,10 +93,10 @@ app.get('/', function (req, res) {
   		"</ul>" + 
   		"<h2>Working - Historic</h2>" +   		
   		"<ul>"+
-  		"<li><a href='/adsense/historic/nicdo77/6'>Get 6 months historic earnings on Adsense for nicdo77</a></li>" + 
-  		"<li><a href='/thinkaction/historic/nicdo77/6'>Get 6 months historic earnings on Thinkaction for nicdo77 </a></li>" +
-  		"<li><a href='/daisycon/historic/nicdo77/1'>Get 1 months historic earnings on Daisycon for nicdo77</a></li>" + 
-  		"<li><a href='/tradetracker/historic/nicdo77/1'>Get 1 months historic earnings on Tradetracker for nicdo77</a></li>" + 
+  		"<li>Adsense 6 months: <a href='/adsense/historic/nicdo77/6'>nicdo77</a> - <a href='/adsense/historic/jimena123/6'>jimena123</a></li>" + 
+  		"<li>Thinkaction 6 months: <a href='/thinkaction/historic/nicdo77/6'>nicdo77</a> - <a href='/thinkaction/historic/jimena123/6'>jimena123</a></li>" + 
+  		"<li>Daisycon 6 months: <a href='/daisycon/historic/nicdo77/6'>nicdo77</a> - <a href='/daisycon/historic/jimena123/6'>jimena123</a></li>" + 
+  		"<li>Tradetracker 6 months: <a href='/tradetracker/historic/nicdo77/6'>nicdo77</a> - <a href='/tradetracker/historic/jimena123/6'>jimena123</a></li>" + 
   		"</ul>" + 
   		"</div>";
   res.send(homepageHtml);
@@ -230,6 +230,9 @@ const cronFetchEarnings = function(){
     });
 };
 
+// ************
+// incomeprovider gets modified directly in this fonction
+// ************
 var getUserEarningsByIncome = function(user,day,incomeprovider,callback){
 	var username = user.username;
 	console.log('[%s] begin getUserEarningsByIncome',username);

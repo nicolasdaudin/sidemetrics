@@ -124,7 +124,7 @@ var getEarnings = function(user_id,username,day,after){
 		},
 
 		function saveInDb(result,callback){
-			console.log('##### [%a] saveDgmaxInDb',username);
+			console.log('##### [%s] saveDgmaxInDb',username);
 			//var dgmaxIncome = new Income.Dgmax( { user_id: user_id, date: dgmaxApiDay, income : result});
 			Income.Dgmax.findOneAndUpdate({ user_id: user_id, date: dgmaxApiDay},{ income : result},{upsert:true},function(err){
 				if (err){
