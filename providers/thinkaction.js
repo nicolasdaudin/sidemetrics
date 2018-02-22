@@ -153,17 +153,11 @@ var getEarningsSeveralDays = function(user_id,username,startDay,endDay,after){
 					var formatDay = moment(tempDay).format('YYYY-MM-DD');
 					var tempEarning = item.revenue;
 					//console.log('[%s] About to add in DB:',username,tempDay,formatDay,tempEarning);
-					var thinkactionIncome = new Income.Thinkaction ( { user_id: user_id, date: formatDay, income : tempEarning});
-					thinkactionIncome.save(function(err){
+					//var thinkactionIncome = new Income.Thinkaction ( { user_id: user_id, date: formatDay, income : tempEarning});
+					Income.Thinkaction.findOneAndUpdate({ user_id: user_id, date: formatDay}, {income : tempEarning},{upsert:true},function(err){						
 						if (err){
-							
-							if (err.name && err.name === 'MongoError' && err.code === 11000){ 
-								console.log('[%s] DUPLICATE record while saving Thinkaction earnings (%s) into DB.',username,JSON.stringify(item));
-							} else {
-								console.log('[%s] Error while saving Thinkaction earnings (%s) into DB. Error : ',username,JSON.stringify(item),err.errmsg);
-								error = error.concat('Error while saving Thinkaction earnings into DB for item ' + JSON.stringify(item) + '\n');
-								//callback(null,result);
-							}
+							console.log('[%s] Error while saving Thinkaction earnings (%s) into DB. Error : ',username,JSON.stringify(item),err.errmsg);
+							error = error.concat('Error while saving Thinkaction earnings into DB for item ' + JSON.stringify(item) + '\n');							
 						} else {
 							console.log('[%s] Saved Thinkaction earnings in DB:',username,formatDay,tempEarning);
 							//callback(null,result);
@@ -183,7 +177,7 @@ var getEarningsSeveralDays = function(user_id,username,startDay,endDay,after){
 					
 				});
 			} else {
-				console.log('[%s] Nothing saved for Thinkaction earnings in DB beteen [%s] and [%s]',username,thinkactionBeginDay,thinkactionEndDay);
+				console.log('[%s] Nothing saved for Thinkaction earnings in DB between [%s] and [%s]',username,thinkactionBeginDay,thinkactionEndDay);
 				callback(null,0);
 			}
 			

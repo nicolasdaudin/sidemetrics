@@ -118,13 +118,14 @@ var getEarnings = function(user_id,username,day,after){
 
 		function saveInDb(result,callback){
 			//console.log('async retrieveEarnings');
-			var gamblingAffiliationIncome = new Income.GamblingAffiliation( { user_id: user_id, date: gamblingAffiliationApiDay, income : result});
-			gamblingAffiliationIncome.save(function(err){
-			if (err){
-					console.log('[%s] Error while saving Gambling Affiliation earnings into DB',username,err.errmsg);
+			//var gamblingAffiliationIncome = new Income.GamblingAffiliation( { user_id: user_id, date: gamblingAffiliationApiDay, income : result});
+			
+			Income.GamblingAffiliation.findOneAndUpdate({ user_id: user_id, date: gamblingAffiliationApiDay},{ income : result},{upsert:true},function(err){
+				if (err){
+					console.log('[%s] Error while saving GamblingAffiliation earnings (%s,%s) into DB. Error : ',username,gamblingAffiliationApiDay,result,err.errmsg);
 					callback(null,result);
 				} else {
-					//console.log('[%s] Gambling Affiliation earnings successfully saved in DB',username);
+					console.log('[%s] Saved GamblingAffiliation earnings in DB:',username,gamblingAffiliationApiDay,result);
 					callback(null,result);
 				}
 			});

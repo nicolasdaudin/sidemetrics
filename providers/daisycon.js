@@ -282,6 +282,7 @@ transaction_disapproved_amount: 0 } ]*/
 					
 				});
 			} else {
+				console.log('[%s] Nothing saved for Daisycon earnings in DB between [%s] and [%s]',username,daisyconApiStartDay,daisyconApiEndDay);
 				callback(null,0);
 			}
 		}

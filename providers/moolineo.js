@@ -112,13 +112,13 @@ var getEarnings = function(user_id,username,day,after){
 
 		function saveMoolineoInDb(result,callback){
 			console.log('##### [%s] saveMoolineoInDb',username);
-			MoolineoIncome = new Income.Moolineo( { user_id: user_id, date: moolineoApiDay, income : result});
-			MoolineoIncome.save(function(err){
+			//MoolineoIncome = new Income.Moolineo( { user_id: user_id, date: moolineoApiDay, income : result});
+			Income.Moolineo.findOneAndUpdate({ user_id: user_id, date: moolineoApiDay},{income : result},{upsert:true},function(err){
 			if (err){
-					console.log('[%s] Error while saving Moolineo earnings into DB',username,err.errmsg);
+					console.log('[%s] Error while saving Moolineo earnings (%s,%s) into DB. Error : ',username,moolineoApiDay,result,err.errmsg);
 					callback(null,result);
 				} else {
-					//console.log('[%s] Moolineo earnings successfully saved in DB',username);
+					console.log('[%s] Saved Moolineo earnings in DB',username,moolineoApiDay,result);
 					callback(null,result);
 				}
 			});

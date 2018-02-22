@@ -124,14 +124,14 @@ var getEarnings = function(user_id,username,day,after){
 		},
 
 		function saveInDb(result,callback){
-			//console.log('async retrieveEarnings');
-			var dgmaxIncome = new Income.Dgmax( { user_id: user_id, date: dgmaxApiDay, income : result});
-			dgmaxIncome.save(function(err){
-			if (err){
-					console.log('[%s] Error while saving dgmax earnings into DB',username,err.errmsg);
+			console.log('##### [%a] saveDgmaxInDb',username);
+			//var dgmaxIncome = new Income.Dgmax( { user_id: user_id, date: dgmaxApiDay, income : result});
+			Income.Dgmax.findOneAndUpdate({ user_id: user_id, date: dgmaxApiDay},{ income : result},{upsert:true},function(err){
+				if (err){
+					console.log('[%s] Error while saving Dgmax earnings (%s,%s) into DB. Error : ',username,dgmaxApiDay,result,err.errmsg);
 					callback(null,result);
 				} else {
-					//console.log('[%s] Dgmax earnings successfully saved in DB',username);
+					console.log('[%s] Saved Dgmax earnings in DB:',username,dgmaxApiDay,result);
 					callback(null,result);
 				}
 			});

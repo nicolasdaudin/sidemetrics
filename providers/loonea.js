@@ -108,13 +108,14 @@ var getEarnings = function(user_id,username,day,after){
 
 		function saveLooneaInDb(result,callback){
 			console.log('##### [%s] saveLooneaInDb',username);
-			LooneaIncome = new Income.Loonea( { user_id: user_id, date: looneaApiDay, income : result});
-			LooneaIncome.save(function(err){
+			//LooneaIncome = new Income.Loonea( { user_id: user_id, date: looneaApiDay, income : result});
+		
+			Income.Loonea.findOneAndUpdate({ user_id: user_id, date: looneaApiDay}, {income : result},{upsert:true},function(err){
 			if (err){
-					console.log('[%s] Error while saving Loonea earnings into DB',username,err.errmsg);
+					console.log('[%s] Error while saving Loonea earnings (%s,%s) into DB. Error : ',username,looneaApiDay,result,err.errmsg);
 					callback(null,result);
 				} else {
-					//console.log('[%s] Loonea earnings successfully saved in DB',username);
+					console.log('[%s] Saved Loonea earnings in DB',username,looneaApiDay,result);
 					callback(null,result);
 				}
 			});

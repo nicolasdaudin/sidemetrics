@@ -271,10 +271,12 @@ var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 				result.rows.forEach( function (item){
 					var tempDay = item[0];
 					var tempEarning = item[1];
-					var adsenseIncome = new Income.Adsense ( { user_id: user_id, date: tempDay, income : tempEarning});
-					adsenseIncome.save(function(err){
+					//var adsenseIncome = new Income.Adsense ( { user_id: user_id, date: tempDay, income : tempEarning});
+					
+					Income.Adsense.findOneAndUpdate({ user_id: user_id, date: tempDay},{ income : tempEarning},{upsert:true},function(err){
+					
 						if (err){
-							console.log('[%s] Error while saving adsense earnings (%s) into DB. Error : ',username,item,err.errmsg);
+							console.log('[%s] Error while saving Adsense earnings (%s) into DB. Error : ',username,item,err.errmsg);
 							//callback(null,result);
 						} else {
 							console.log('[%s] Saved Adsense earnings in DB:',username,item);
