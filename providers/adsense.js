@@ -267,21 +267,25 @@ var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 		}, 
 
 		function saveAdsenseInDb(result,callback){
-			result.rows.forEach( function (item){
-				var tempDay = item[0];
-				var tempEarning = item[1];
-				var adsenseIncome = new Income.Adsense ( { user_id: user_id, date: tempDay, income : tempEarning});
-				adsenseIncome.save(function(err){
-					if (err){
-						console.log('[%s] Error while saving adsense earnings (%s) into DB. Error : ',username,item,err.errmsg);
-						//callback(null,result);
-					} else {
-						//console.log('[%s] Adsense earnings successfully saved in DB',username);
-						//callback(null,result);
-					}
+			if (result && result.rows && result.rows.length>0) {
+				result.rows.forEach( function (item){
+					var tempDay = item[0];
+					var tempEarning = item[1];
+					var adsenseIncome = new Income.Adsense ( { user_id: user_id, date: tempDay, income : tempEarning});
+					adsenseIncome.save(function(err){
+						if (err){
+							console.log('[%s] Error while saving adsense earnings (%s) into DB. Error : ',username,item,err.errmsg);
+							//callback(null,result);
+						} else {
+							console.log('[%s] Saved Adsense earnings in DB:',username,item);
+							//callback(null,result);
+						}
+					});
 				});
-			});
-			callback(null,result);
+				callback(null,result);
+			} else {
+				callback(null,{totals:['',null]});
+			}
 			
 		}
 	], function(err,result){
@@ -289,8 +293,12 @@ var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 			console.log('[%s] final function err',username,err);
 			after('error',null);
 		} else {
+			var total = 0;
+			if (result && result.totals && result.totals.length > 1 && result.totals[1]) {
+				total = result.totals[1];
+			}
 			//console.log('[%s] final result',username,result);
-			after(null,result.totals[1]);
+			after(null,total);
 		}
 	});
 };

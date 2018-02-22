@@ -250,7 +250,7 @@ transaction_disapproved_amount: 0 } ]*/
 
 			var error = "";
 			var daysProcessed = 0;
-			if (result) {
+			if (result && result.length > 0) {
 				result.forEach( function (item){
 				
 					var tempDay = item.date;

@@ -81,16 +81,15 @@ app.get('/', function (req, res) {
   		"</ul>" +
   		"<h2>Working - Normal</h2>" + 
   		"<ul>"+
-  		"<li><a href='/adsense/connect/nicdo77'>Connect to Adsense (nicdo77)</a></li>"+  		
-  		"<li><a href='/adsense/earnings/nicdo77'>Get Adsense earnings (nicdo77)</a></li>"+
-  		"<li><a href='/tradetracker/earnings/nicdo77'>Get Tradetracker earnings for nicdo77</a></li>" +
-  		"<li><a href='/tradetracker/earnings/jimena123'>Get Tradetracker earnings for jimena123</a></li>" +
-  		"<li><a href='/moolineo/earnings/nicdo77'>Get Moolineo earnings for nicdo77 for yesterday</a></li>" +
-  		"<li><a href='/loonea/earnings/nicdo77'>Get Loonea earnings for nicdo77 for yesterday</a></li>" +
-  		"<li><a href='/daisycon/earnings/nicdo77'>Get Daisycon earnings for nicdo77 for yesterday</a></li>" + 
-  		"<li><a href='/dgmax/earnings/jimena123'>Get Dgmax earnings for jimena123 for yesterday</a></li>" + 
-  		"<li><a href='/thinkaction/earnings/nicdo77'>Get Thinkaction earnings for nicdo77 for yesterday</a></li>" +
-  		"<li><a href='/gamblingaffiliation/earnings/nicdo77'>Get Gambling Affiliation Earnings for nicdo77 </a></li>" +
+  		"<li>Adsense connect: <a href='/adsense/connect/nicdo77'>nicdo77</a></li>"+  		
+  		"<li>Adsense earnings: <a href='/adsense/earnings/nicdo77'>nicdo77 (yesterday)</a> - <a href='/adsense/earnings/jimena123'>jimena123 (yesterday)</a></li>"+
+  		"<li>Tradetracker earnings: <a href='/tradetracker/earnings/nicdo77'>nicdo77 (yesterday)</a> - <a href='/tradetracker/earnings/jimena123'>jimena123 (yesterday)</a></li>"+
+  		"<li>Moolineo earnings: <a href='/moolineo/earnings/nicdo77'>nicdo77 (yesterday)</a></li>" +
+  		"<li>Loonea earnings: <a href='/loonea/earnings/nicdo77'>nicdo77 (yesterday)</a></li>" +
+  		"<li>Daisycon earnings: <a href='/daisycon/earnings/nicdo77'>nicdo77 (yesterday)</a> - <a href='/daisycon/earnings/jimena123'>jimena123 (yesterday)</a></li>" + 
+  		"<li>DG MAX earnings: <a href='/dgmax/earnings/jimena123'>jimena123 (yesterday)</a></li>" + 
+  		"<li>Thinkaction: <a href='/thinkaction/earnings/nicdo77'>nicdo77 (yesterday)</a> - <a href='/thinkaction/earnings/jimena123'>jimena123 (yesterday)</a></li>" +
+  		"<li>Gambling Affiliation: <a href='/gamblingaffiliation/earnings/nicdo77'>nicdo77 (yesterday)</a></li>" +
   		"</ul>" + 
   		"<h2>Working - Historic</h2>" +   		
   		"<ul>"+

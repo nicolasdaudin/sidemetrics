@@ -201,7 +201,7 @@ var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 		          		//console.log("getConversionTransactions for site id [%s] : [%s]",affiliateSiteId,JSON.stringify(report));
 
 		          		// TODO : on vient de rajouter && Report.conversionTransactions.item car sinon le earnings/nicdo77 (pour un seul jour) ne fonctionne pas
-		          		if (report && report.conversionTransactions && report.conversionTransactions.item){
+		          		if (report && report.conversionTransactions && report.conversionTransactions.item && report.conversionTransactions.item.length > 0){
 		          			report.conversionTransactions.item.forEach(function(transaction) {
 		          				var commission = new Number(transaction.commission.$value);
 		          				var formatDate = moment(transaction.registrationDate.$value).format('YYYY-MM-DD');

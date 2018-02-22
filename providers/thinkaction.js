@@ -146,7 +146,7 @@ var getEarningsSeveralDays = function(user_id,username,startDay,endDay,after){
 
 			var error = "";
 			var daysProcessed = 0;
-			if (result && result.data ) {
+			if (result && result.data && result.data.length > 0) {
 				result.data.forEach( function (item){
 				
 					var tempDay = item.date;
@@ -165,7 +165,7 @@ var getEarningsSeveralDays = function(user_id,username,startDay,endDay,after){
 								//callback(null,result);
 							}
 						} else {
-							console.log('[%s] Saved Thinkaction earnings in DB:',username,tempDay,formatDay,tempEarning);
+							console.log('[%s] Saved Thinkaction earnings in DB:',username,formatDay,tempEarning);
 							//callback(null,result);
 						}
 
@@ -183,6 +183,7 @@ var getEarningsSeveralDays = function(user_id,username,startDay,endDay,after){
 					
 				});
 			} else {
+				console.log('[%s] Nothing saved for Thinkaction earnings in DB beteen [%s] and [%s]',username,thinkactionBeginDay,thinkactionEndDay);
 				callback(null,0);
 			}
 			
