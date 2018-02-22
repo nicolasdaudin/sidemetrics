@@ -256,17 +256,12 @@ transaction_disapproved_amount: 0 } ]*/
 					var tempDay = item.date;
 					var tempEarning = item.transaction_open_amount + item.transaction_approved_amount + item.transaction_disapproved_amount;
 					//console.log('[%s] Daisycon Earnings - About to add in DB:',username,tempDay,tempEarning);
-					var daisyconIncome = new Income.Daisycon ( { user_id: user_id, date: tempDay, income : tempEarning});
-					daisyconIncome.save(function(err){
+					//var daisyconIncome = new Income.Daisycon ( { user_id: user_id, date: tempDay, income : tempEarning});
+					//daisyconIncome.save(function(err){
+					Income.Daisycon.findOneAndUpdate({ user_id: user_id, date: tempDay},{income: tempEarning},{upsert:true},function(err){	
 						if (err){
-							
-							if (err.name && err.name === 'MongoError' && err.code === 11000){ 
-								console.log('[%s] DUPLICATE record while saving Daisycon earnings (%s) into DB.',username,JSON.stringify(item));
-							} else {
-								console.log('[%s] Error while saving Daisycon earnings (%s) into DB. Error : ',username,JSON.stringify(item),err.errmsg);
-								error = error.concat('Error while saving Daisycon earnings into DB for item ' + JSON.stringify(item) + '\n');
-								//callback(null,result);
-							}
+							console.log('[%s] Error while saving Daisycon earnings (%s) into DB. Error : ',username,JSON.stringify(item),err.errmsg);
+							error = error.concat('Error while saving Daisycon earnings into DB for item ' + JSON.stringify(item) + '\n');							
 						} else {
 							console.log('[%s] Saved Daisycon earnings in DB:',username,tempDay,tempEarning);
 							//callback(null,result);

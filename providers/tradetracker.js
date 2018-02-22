@@ -261,17 +261,10 @@ var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 				      	callback(error,commission);
 				      	continueLoop = false;
 				    } else {
-						var tradetrackerIncome = new Income.Tradetracker( { user_id: user_id, date: tempDay, income : commission});
 						Income.Tradetracker.findOneAndUpdate({ user_id: user_id, date: tempDay}, {income : commission},{upsert:true},(function(err){
 							if (err){
-								
-								if (err.name && err.name === 'MongoError' && err.code === 11000){ 
-									console.log('[%s] DUPLICATE record while saving Tradetracker earnings (%s) into DB. Error: ',username,JSON.stringify(this),err.errmsg);
-								} else {
-									console.log('[%s] Error while saving Tradetracker earnings  (%s) into DB. Error : ',username,JSON.stringify(this),err.errmsg);
-									error = error.concat(err.errmsg+ '\n');
-									//callback(null,result);
-								}
+								console.log('[%s] Error while saving Tradetracker earnings  (%s) into DB. Error : ',username,JSON.stringify(this),err.errmsg);
+								error = error.concat(err.errmsg+ '\n');								
 							} else {
 								console.log('[%s] Saved Tradetracker earnings in DB: (%s) ',username,JSON.stringify(this));
 								//callback(null,result);
