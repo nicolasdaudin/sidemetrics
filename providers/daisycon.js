@@ -16,7 +16,7 @@ var Curl = require( 'node-libcurl' ).Curl;
 var router = express.Router();
 
 const AUTH_URL = 'https://services.daisycon.com/authenticate';
-const PUBLISHERS_URL = 'https://services.daisycon.com/publishers?page=1&per_page=100';
+const PUBLISHERS_URL = 'https://services.daisycon.com/publishers?page=1&per_page=1000';
 
 
 
@@ -167,7 +167,7 @@ var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 			var curl = new Curl();
 			// be careful, this is ES2015/ES6 notation (see https://stackoverflow.com/questions/3304014/javascript-variable-inside-string-without-concatenation-like-php)
 			
-			// https://services.daisycon.com/publishers/369190/statistics/date?start=2017-10-29&end=2017-11-02&page=1&per_page=100&smartview=transaction
+			// https://services.daisycon.com/publishers/369190/statistics/date?start=2017-10-29&end=2017-11-02&page=1&per_page=1000&smartview=transaction
 			// docs at https://developers.daisycon.com/api/resources/publisher-resources/ + statistics/date
 			// JSON.parse(body) below is 
 			/*[nicdo77] result found:  [ { date: '2017-11-24',
@@ -191,7 +191,7 @@ transaction_open_amount: 2.15,
 transaction_approved_amount: 0,
 transaction_disapproved_amount: 0 } ]*/
 
-			const url = `https://services.daisycon.com/publishers/${publisherId}/statistics/date?start=${daisyconApiStartDay}&end=${daisyconApiEndDay}&page=1&per_page=100&smartview=transaction`;
+			const url = `https://services.daisycon.com/publishers/${publisherId}/statistics/date?start=${daisyconApiStartDay}&end=${daisyconApiEndDay}&page=1&per_page=1000&smartview=transaction`;
 			console.log(url);
 
 
