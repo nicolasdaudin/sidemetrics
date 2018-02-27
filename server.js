@@ -298,12 +298,12 @@ app.get('/dashboard',function(req,res){
 
 	var today = moment();
 	var yesterday = moment().subtract(1,'days');
-    var sevendaysago = moment().subtract(7,'days'); 
+    var dashboardBeginDate = moment().subtract(8,'days'); 
     //var niceDay = yesterday.format('dddd DD MMMM YYYY');
     var monthname = yesterday.format('MMMM');
 
     var daysArray = [];
-    var tempday = moment(sevendaysago);
+    var tempday = moment(dashboardBeginDate);
     while (tempday.isBefore(today)) {
     	daysArray.push(tempday.format('YYYY-MM-DD'));
     	tempday.add(1,'days');
@@ -354,7 +354,7 @@ app.get('/dashboard',function(req,res){
 				var incomeproviders = getIncomeProviders();				
 				
 				async.eachSeries(incomeproviders,function (incomeprovider,callbackSmallEach){
-					getUserEarningsByIncome(user,sevendaysago,yesterday,incomeprovider,function(){
+					getUserEarningsByIncome(user,dashboardBeginDate,yesterday,incomeprovider,function(){
 						console.log('[%s] callback from getUserEarningsByIncome',username);
 						callbackSmallEach();
 					});
@@ -373,7 +373,7 @@ app.get('/dashboard',function(req,res){
 							`<table><thead><tr><th>Plataforma</th>`;
 
 						for (var i = 0; i < daysArray.length - 1; i++) {
-							var thisday = moment(daysArray[i]).format('dddd');
+							var thisday = moment(daysArray[i]).format('dddd D');
 							userHtml += `<th>${thisday}</th>`;
 						}
 
@@ -496,7 +496,7 @@ const cronSendEmails = function() {
 				var incomeproviders = getIncomeProviders();				
 				
 				async.eachSeries(incomeproviders,function (incomeprovider,callbackSmallEach){
-					getUserEarningsByIncome(user,yesterday,incomeprovider,function(){
+					getUserEarningsByIncome(user,yesterday,yesterday,incomeprovider,function(){
 						console.log('[%s] callback from getUserEarningsByIncome',username);
 						callbackSmallEach();
 					});
@@ -516,11 +516,15 @@ const cronSendEmails = function() {
 							
 							var incomeprovider = incomeproviders[i];
 		          			if (incomeprovider.earnings){
-		          				var mailPhraseSource = '<b>' + incomeprovider.source + '</b> : ' + incomeprovider.earnings.day + 
+		          				var earningsYesterday = 0;
+		          				if (incomeprovider.earnings.days && incomeprovider.earnings.days[yesterday.format('YYYY-MM-DD')]){
+		          					earningsYesterday = incomeprovider.earnings.days[yesterday.format('YYYY-MM-DD')];
+		          				}
+		          				var mailPhraseSource = '<b>' + incomeprovider.source + '</b> : ' + earningsYesterday + 
 		          					' <i>(Total for ' + monthname  + ' : ' + incomeprovider.earnings.month + ')</i><br>';
 	          					//console.log(mailPhraseSource);
 	          					mailHtml += mailPhraseSource;
-	          					totalToday += incomeprovider.earnings.day;
+	          					totalToday += earningsYesterday;
 	          					totalMonth += incomeprovider.earnings.month;
 	          				}
 	          			}
@@ -533,7 +537,7 @@ const cronSendEmails = function() {
 						// setup email data with unicode symbols
 						var mailOptions = {
 						    from: '"Sidemetrics 📈❤️" <no-reply@sidemetrics.com>', // sender address
-						    to: 'nicolas.daudin@gmail.com',//user.email, 
+						    to: user.email, 
 						    subject: 'Ganancias del dia ' + niceDay, // Subject line
 						    //text: mailText, // plain text body
 						    html: mailHtml // html body

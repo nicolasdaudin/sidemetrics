@@ -43,4 +43,5 @@ jspm_packages
 # not committing config.js since it contains sensitive data
 config.js
 .env
+queryexamples
 
