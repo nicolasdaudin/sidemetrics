@@ -73,12 +73,12 @@ app.get('/', function (req, res) {
   var homepageHtml = 
   		"<div>" + 
   		"<h1>Welcome to Sidemetrics 1.1.0</h1>" + 
-  		"<h2 style='color:red'>Ongoing</h2>" +   		
+  		"<h2>MAIN MENU</h2>" +   		
   		"<ul>" + 
 		"<li><a href='/dashboard'>DASHBOARD</a></li>"+  
 		"<li><a href='/cron/fetchEarnings'>CRON fetchEarnings</a></li>"+  
 		"<li><a href='/cron/sendEmails'>CRON sendEmails</a></li>"+  
-  		"</ul>" +
+  		"</ul>" +  		
   		"<h2>Working - Normal</h2>" + 
   		"<ul>"+
   		"<li>Adsense connect: <a href='/adsense/connect/nicdo77'>nicdo77</a></li>"+  		
@@ -97,6 +97,7 @@ app.get('/', function (req, res) {
   		"<li>Thinkaction 6 months: <a href='/thinkaction/historic/nicdo77/6'>nicdo77</a> - <a href='/thinkaction/historic/jimena123/6'>jimena123</a></li>" + 
   		"<li>Daisycon 6 months: <a href='/daisycon/historic/nicdo77/6'>nicdo77</a> - <a href='/daisycon/historic/jimena123/6'>jimena123</a></li>" + 
   		"<li>Tradetracker 6 months: <a href='/tradetracker/historic/nicdo77/6'>nicdo77</a> - <a href='/tradetracker/historic/jimena123/6'>jimena123</a></li>" + 
+  		"<li>Gambling Affiliation 6 months: <a href='/gamblingaffiliation/historic/nicdo77/6'>nicdo77</a></li>" + 
   		"</ul>" + 
   		"</div>";
   res.send(homepageHtml);

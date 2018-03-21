@@ -30,7 +30,7 @@ router.get('/earnings/:username',function(req,res){
 		} else {
 			//console.log('user',user);
 			var yesterday = moment().subtract(1,'days'); 
-			getEarnings(user._id,username,yesterday,function(err,result){
+			getEarningsSeveralDays(user._id,username,yesterday,yesterday,function(err,result){
 				if (err){
 					console.log("Returned from getEarnings (Gambling Affiliation) with ERROR");
 					res.send("Returned from getEarnings (Gambling Affiliation) with ERROR");
@@ -43,11 +43,45 @@ router.get('/earnings/:username',function(req,res){
 	});
 });
 
-var getEarnings = function(user_id,username,day,after){
+router.get('/historic/:username/:months',function(req,res){
+	
+	var username = req.params.username;
+	var months = req.params.months;
+	console.log('\n##### [%s] trying to get Gambling Affiliation historic earnings for the past %s months',username,months);
+
+	User.findByUsername(username,function(err,user){
+		if (err){
+			console.log('Error while retrieving user',err);
+			callback(err,null);
+		} else {
+			//console.log('user',user);
+			var yesterday = moment().subtract(1,'days'); 
+			var beginDay = moment().subtract(months,'months');
+
+			getEarningsSeveralDays(user._id,username,beginDay,yesterday,function(err,result){
+				if (err){
+					console.log("Returned from getEarnings (GamblingAffiliation) with ERROR");
+					res.send("Returned from getEarnings (GamblingAffiliation) with ERROR");
+				} else {
+					//console.log("FINAL  RESULT",result);
+					res.send("<p>FINAL RESULT</p>" + JSON.stringify(result));
+				}
+			});
+		}
+	});	
+});
+
+var getEarnings = function (user_id,username,day,after){	
+	getEarningsSeveralDays(user_id,username,day,day,after);
+}
+
+
+var getEarningsSeveralDays = function(user_id,username,startDay,endDay,after){
 
 	console.log("############### [%s] BEGIN GAMBLING AFFILIATION GET EARNINGS",username);
 
-	var gamblingAffiliationApiDay = day.format('YYYY-MM-DD');
+	var gamblingAffiliationApiStartDay = startDay.format('YYYY-MM-DD');
+	var gamblingAffiliationApiEndDay = endDay.format('YYYY-MM-DD');
 
 	async.waterfall([
 
@@ -74,27 +108,28 @@ var getEarnings = function(user_id,username,day,after){
 			var totalEarnings = 0;
 
 			var user = credentials.username;
-			var password = credentials.password;
+			var password = credentials.password;			
 			console.log('[%s] Gambling Affiliation credentials:',user,credentials);
 			
 			//var email = 'jimena@123dinero.com';
 			//var password = 'DBSgrds3d';
 			
 			var options = { method: 'POST',
-			  	url: 'https://phantombuster.com/api/v1/agent/5491/launch',
+			  	url: 'https://phantombuster.com/api/v1/agent/9257/launch',
 			  	headers: {
 					'X-Phantombuster-Key-1': header
 				},
 			  	qs: { 
 			   		output: 'first-result-object',
-			     	argument: '{ "username" : "' + user + '","password" : "' + password + '" }'
-			    }
+			     	argument: '{ "username" : "' + user + '","password" : "' + password + '","startDate" : "' + gamblingAffiliationApiStartDay + '","endDate" : "' + gamblingAffiliationApiEndDay + '" }'
+			    },
+			    timeout: 1000000
 			};
 
 			console.log('[%s] Gambling Affiliation : fetching results with Phantom Buster ........',username);
 
 			request(options, function (err, response, body) {
-				//console.log('[%s] Back from PhantomBuster call for Moolineo. Variable -body- is ',username,body);				
+				console.log('[%s] Back from PhantomBuster call for Gambling. Variable -body- is ',username,body);				
 
 			  	if (err) {
 			  		console.log('[%s] Error while retrieving Gambling Affiliation stuff',error);
@@ -108,33 +143,55 @@ var getEarnings = function(user_id,username,day,after){
 
 			  	var result = JSON.parse(body);
 	
-			  	var totalEarnings = result.data.resultObject.gamblingEarningsYesterday;
-			  	console.log('[%s] Gambling Affiliation - Total earnings : ',username,totalEarnings);
+			  	var earningsObject = result.data.resultObject;
+			  	//console.log('[%s] Gambling Affiliation - Total earnings : ',username,totalEarnings);
 			  	//var totalEarningsEUR = fx.convert(totalEarningsUSD,{ from:"USD", to: "EUR"});
 				//console.log('[%s] Gambling Affiliation - Total earnings in EUR: ',username,totalEarningsEUR);
-			  	callback(null,totalEarnings.toFixed(2));	
+			  	callback(null,earningsObject);	
 			});	
 		},
 
 		function saveInDb(result,callback){
 			//console.log('async retrieveEarnings');
 			//var gamblingAffiliationIncome = new Income.GamblingAffiliation( { user_id: user_id, date: gamblingAffiliationApiDay, income : result});
-			
-			Income.GamblingAffiliation.findOneAndUpdate({ user_id: user_id, date: gamblingAffiliationApiDay},{ income : result},{upsert:true},function(err){
-				if (err){
-					console.log('[%s] Error while saving GamblingAffiliation earnings (%s,%s) into DB. Error : ',username,gamblingAffiliationApiDay,result,err.errmsg);
-					callback(null,result);
-				} else {
-					console.log('[%s] Saved GamblingAffiliation earnings in DB:',username,gamblingAffiliationApiDay,result);
-					callback(null,result);
-				}
-			});
+			var error = "";
+			var daysProcessed = 0;
+			var totalDays = Object.keys(result).length;
+			for (var date in result) {				
+			    if (result.hasOwnProperty(date)) {
+			    	var earningThisDay = result[date];
+			    	var tempEarning = { day : date, earned:earningThisDay};
+
+			        Income.GamblingAffiliation.findOneAndUpdate({ user_id: user_id, date: date},{ income : earningThisDay},{upsert:true},(function(err){
+						if (err){
+							// POUR L'INSTANT DANS LES LOGS SI IL Y A ·3 DATES le date et earningThisDay vont toujousr être de la même date
+							// voir à nouveau du côté de bind?!?!?
+							console.log('[%s] Error while saving GamblingAffiliation earnings (%s) into DB. Error : ',username,JSON.stringify(this),err.errmsg);
+							error = error.concat('Error while saving GamblingAffiliation earnings into DB for item (' + JSON.stringify(this) + ')\n');
+						} else {
+							console.log('[%s] Saved GamblingAffiliation earnings in DB: (%s)',username,JSON.stringify(this));
+							//callback(null,result);
+						}
+
+						daysProcessed++;
+						if(daysProcessed === totalDays) {
+							//  ############# 
+							//      TODO
+							// ##############
+							// This is wrong: only callbacks with the last earning. This would not work for several days
+							// but that's not the point. 
+							// once we separate cron to retrieve earnings and cron to send emails, we will be muuuuch better
+					      	callback(error,earningThisDay);
+					    }
+					}).bind(tempEarning));
+			    }
+			}
 		}
 
 	], function(err,result){
 		if (err){
 			console.log('[%s] async final function err',username,err);
-			after('error',null);
+			after('error',result);
 		} else {
 			// to add at the end of async.waterfall return funciton
 			//console.log('[%s] async final result',username,result);
