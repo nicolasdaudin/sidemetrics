@@ -7,7 +7,7 @@ var async = require ('async');
 var fx = require('money');
 fx.base = "EUR";
 fx.rates = {
-	"USD" : 1.17933, // 1 EUR === 1.17933 USD on 18 december 2017
+	"USD" : 1.22838, // 1 EUR === 1.22838 USD on 21 march 2018
 	"EUR" : 1        // always include the base rate (1:1)
 };
 
@@ -53,8 +53,13 @@ router.get('/earnings/:username',function(req,res){
 var getEarnings = function(user_id,username,day,after){
 
 	console.log("############### [%s] BEGIN DGMAX GET EARNINGS",username);
-
+	//day = moment();
 	var dgmaxApiDay = day.format('YYYY-MM-DD');
+	var isToday = false;
+	if (day.isSame(moment(),'day')){
+		isToday = true;
+	}
+	console.log('isToday',isToday);
 
 	async.waterfall([
 
@@ -94,7 +99,7 @@ var getEarnings = function(user_id,username,day,after){
 				},
 			  	qs: { 
 			   		output: 'first-result-object',
-			     	argument: '{ "email" : "' + email + '","password" : "' + password + '" }'
+			     	argument: '{ "email" : "' + email + '","password" : "' + password + '","isToday" : "' + isToday + '" }'
 			    }
 			};
 

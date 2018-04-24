@@ -6,10 +6,17 @@ var tradetrackerCredentialsSchema = new mongoose.Schema({
   passphrase : String
 });
 
-var googleCredentialsSchema = new mongoose.Schema({
+var adsenseCredentialsSchema = new mongoose.Schema({
   user_id: { type: mongoose.Schema.Types.ObjectId, unique: true, index: true },
   accessToken : String,
   refreshToken : String
+});
+
+var analyticsCredentialsSchema = new mongoose.Schema({
+  user_id: { type: mongoose.Schema.Types.ObjectId, unique: true, index: true },
+  accessToken : String,
+  refreshToken : String,
+  viewId: String
 });
 
 var moolineoCredentialsSchema = new mongoose.Schema({
@@ -46,7 +53,8 @@ var gamblingAffiliationCredentialsSchema = new mongoose.Schema({
   password : String 
 });
 
-var Adsense =  mongoose.model('AdsenseCredentials', googleCredentialsSchema);
+var Adsense =  mongoose.model('AdsenseCredentials', adsenseCredentialsSchema);
+var Analytics = mongoose.model('AnalyticsCredentials',analyticsCredentialsSchema);
 var Tradetracker = mongoose.model('TradetrackerCredentials', tradetrackerCredentialsSchema);
 var Moolineo = mongoose.model('MoolineoCredentials',moolineoCredentialsSchema);
 var Loonea = mongoose.model('LooneaCredentials',looneaCredentialsSchema);
@@ -73,4 +81,4 @@ var userHasCredentials = function(userid,username, incomesource, credentialsmode
 	});
 };
 
-module.exports = {Adsense,Tradetracker,Moolineo,Loonea,Thinkaction,Dgmax,Daisycon,GamblingAffiliation,userHasCredentials};
+module.exports = {Adsense,Analytics,Tradetracker,Moolineo,Loonea,Thinkaction,Dgmax,Daisycon,GamblingAffiliation,userHasCredentials};

@@ -9,6 +9,7 @@ var moment = require ('moment');
 moment.locale('es');
 
 var adsense = require ('./providers/adsense');
+var analytics = require ('./providers/analytics');
 var tradetracker = require ('./providers/tradetracker');
 var moolineo = require ('./providers/moolineo');
 var loonea = require ('./providers/loonea');
@@ -18,6 +19,7 @@ var daisycon = require('./providers/daisycon');
 var gamblingaffiliation = require('./providers/gamblingaffiliation');
 
 var Income = require('./models/income');
+var AnalyticsModel = require('./models/analytics');
 var Credentials = require('./models/credentials');
 
 var getIncomeProviders = function (){  
@@ -30,7 +32,6 @@ var getIncomeProviders = function (){
 		{source:'DGMax Interactive (convertido a EUR)',dbname:'dgmax',provider:dgmax,credentials_model:Credentials.Dgmax,income_model:Income.Dgmax},
 		{source:'Daisycon',dbname:'daisycon',provider:daisycon,credentials_model:Credentials.Daisycon,income_model:Income.Daisycon},
 		{source:'Gambling Affiliation',dbname:'gambling',provider:gamblingaffiliation,credentials_model:Credentials.GamblingAffiliation,income_model:Income.GamblingAffiliation}
-
 	]
 };
 
@@ -60,6 +61,7 @@ app.use(express.static('static'));
 app.use(bodyParser.json()); // for parsing application/json
 app.use(bodyParser.urlencoded({ extended: true })); // for parsing 
 
+app.use('/analytics',analytics.router);
 app.use('/adsense',adsense.router);
 app.use('/tradetracker',tradetracker.router);
 app.use('/moolineo',moolineo.router);
@@ -77,7 +79,14 @@ app.get('/', function (req, res) {
   		"<ul>" + 
 		"<li><a href='/dashboard'>DASHBOARD</a></li>"+  
 		"<li><a href='/cron/fetchEarnings'>CRON fetchEarnings</a></li>"+  
+		"<li><a href='/cron/fetchEarningsToday'>CRON fetchEarningsToday</a></li>"+  
 		"<li><a href='/cron/sendEmails'>CRON sendEmails</a></li>"+  
+  		"</ul>" +  		
+  		"<h2>TESTING</h2>" + 
+  		"<ul>"+
+  		"<li>Analytics connect: <a href='/analytics/connect/nicdo77'>nicdo77</a> - <a href='/analytics/connect/jimena123'>jimena123</a></li>"+  		
+  		"<li>Analytics user sessions: <a href='/analytics/usersessions/nicdo77'>nicdo77 (yesterday)</a> - <a href='/analytics/usersessions/jimena123'>jimena123 (yesterday)</a></li>"+
+  		"<li>Analytics HISTORIC 6 months: <a href='/analytics/historic/nicdo77/1'>nicdo77</a> - <a href='/analytics/historic/jimena123/1'>jimena123</a></li>" + 
   		"</ul>" +  		
   		"<h2>Working - Normal</h2>" + 
   		"<ul>"+
@@ -154,33 +163,44 @@ app.get('/historic/all/:days/:username',function(req,res){
 
 app.get('/cron/all',function(req,res){
 	console.log("CRON ALL - MANUAL LAUNCH - BEGIN");
-	cronFetchEarnings();
-	cronSendEmails();
+	fetchEarnings();
+	sendEmails();
 	res.send('ONGOING, check logs');
 });
 
 app.get('/cron/fetchEarnings',function(req,res){
 	console.log("CRON FETCH EARNINGS - MANUAL LAUNCH");
-	cronFetchEarnings();
+	fetchEarnings();
 	res.send('ONGOING, check logs');
 });
+
+app.get('/cron/fetchEarningsToday',function(req,res){
+	console.log("CRON FETCH EARNINGS TODAY- MANUAL LAUNCH");
+	fetchEarnings(true);
+	res.send('ONGOING, check logs');
+})
 
 app.get('/cron/sendEmails',function(req,res){
 	console.log("CRON SEND EMAILS - MANUAL LAUNCH");
-	cronSendEmails();
+	sendEmails();
 	res.send('ONGOING, check logs');
 });
 
-const cronFetchEarnings = function(){
+const fetchEarnings = function(isToday){
+
 	// CRON STARTED
     var cronBegin = moment();
     console.log('CRON FETCH EARNINGS - BEGIN at',cronBegin);
 
-    var yesterday = moment().subtract(1,'days'); 
-    var niceDay = yesterday.format('dddd DD MMMM YYYY');
-    var monthname = yesterday.format('MMMM');
+    var day = moment().subtract(1,'days'); 
+    var niceDay = day.format('dddd DD MMMM YYYY');
+    var monthname = day.format('MMMM');
 
-    console.log('CRON FETCH EARNINGS - FOR DAY',yesterday);
+    if (isToday) {
+    	day = moment();
+    }
+
+    console.log('CRON FETCH EARNINGS - FOR DAY',day);
     // get all users
     User.findAllUsers(function(err,users){
     	if (err) { 
@@ -190,7 +210,17 @@ const cronFetchEarnings = function(){
     		async.eachSeries(users,function getInfoFromIncomeSource(user,callbackEach){
 
     			var username = user.username;
-    		
+
+    			// getting Analytics user sessions    			
+    			analytics.getUserSessions(user._id,username,day,function(err,result){
+    				if (err){
+						console.error("[%s] CRON FETCH EARNINGS - Back from Analytics.getUserSessions with error: ",username,err);					
+					} else {
+						//console.log("[%s] CRON FETCH EARNINGS - Back from Analytics.getUserSessions with SUCCESS",username);	
+					}	
+    			});
+
+    			// in "parallel", getting earnings....
 				var incomeproviders = getIncomeProviders();				
 				
 				async.eachSeries(incomeproviders,function(incomeprovider,callbackSmallEach){
@@ -202,14 +232,14 @@ const cronFetchEarnings = function(){
 							callbackSmallEach();
 						} else {
 							
-							incomeprovider.provider.getEarnings(user._id,username,yesterday,function(err,result){
+							incomeprovider.provider.getEarnings(user._id,username,day,function(err,result){
 								if (err){
-									console.log("[%s] CRON FETCH EARNINGS - Back from getEarnings for %s with error: ",username,incomesource,err);
+									console.error("[%s] CRON FETCH EARNINGS - Back from getEarnings for %s with error: ",username,incomesource,err);
 									callbackSmallEach();
 								} else {
 									//var dayTotal = result.totals[1];
-									var dayTotal = result;
-									console.log("[%s] CRON FETCH EARNINGS - Back from getEarnings for day %s for %s with earnings: ",username,yesterday,incomesource,dayTotal);					
+									//var dayTotal = result;
+									//console.log("[%s] CRON FETCH EARNINGS - Back from getEarnings for day %s for %s with earnings: ",username,day,incomesource,dayTotal);					
 									callbackSmallEach();
 
 								}	
@@ -219,6 +249,8 @@ const cronFetchEarnings = function(){
 						
 					});
 				}, function afterAllProviders(){
+
+
 					callbackEach();
 				});
 	    	},
@@ -231,8 +263,53 @@ const cronFetchEarnings = function(){
     });
 };
 
+var getUserSessions = function(user,begin,end,sessions,callback){
+	var username = user.username;
+	console.log('[%s] begin getUserSessions',username);
+	
+	
+	AnalyticsModel.getDaySessions(user._id,username,begin,end,function(err,result){
+		//console.log('callback from getDayEarnings - result=%s - err=%s',JSON.stringify(result),err);
+		if (err){
+			console.log("[%s] server.js - Back from getDaySessions for %s with error: ",username,err);
+			callback();
+		} else {
+			console.log("[%s] Back from getDaySessions between %s and %s",username,begin,end);		
+
+			sessions.days = [];
+			result.forEach(function(item){
+
+				var itemDate = moment(item.date).format('YYYY-MM-DD');
+				var itemSessions = item.sessions;
+				sessions.days[itemDate] = new Number(itemSessions);
+			});
+			
+		
+			AnalyticsModel.getMonthSessions(user._id,username,end,function(err,result){
+				console.log('callback from getMonthSessions - result=%s - err=%s',JSON.stringify(result),err);
+				if (err){
+					console.log("[%s] server.js - Back from getMonthSessions with error: ",username,err);
+					callback();
+				} else {
+					console.log("[%s] Back from getMonthSessions for day %s with sessions: ",username,end,result);		
+
+					sessions.month = new Number(result);
+					callback();
+
+				}
+
+			});	
+
+		}
+
+	});	
+		
+};
+
 // ************
 // incomeprovider gets modified directly in this fonction
+//
+// this function retrieves all user earnings for the given <incomeprovider>, between <begin> and <end>
 // ************
 var getUserEarningsByIncome = function(user,begin,end,incomeprovider,callback){
 	var username = user.username;
@@ -297,6 +374,13 @@ app.get('/dashboard',function(req,res){
 
 	console.log('ABOUT TO SHOW DASHBOARD FUCK YEAH !!!!!');
 
+	console.log('BUT FIRST, LETS FETCH EARNINGS FOR TODAY');
+	//fetchEarnings(true);
+	// TODO: peut-être rajouter un cron qui s'execute toutes les heures pour actualiser les earnings de TODAY ?!?!?!?!?!?!?!?!?!
+	// HUM DANGEREUX CAR ça veut dire executer le scraper et les APIS 24 fois par jour... au lieu de 2 ou 3 fois si c'est que lié à l'affichage du dashboard - donc à la demande
+	// MAIS D'UN AUTRE COTE, si c'est à la demande, on sait que ça prend 60 secondes pour tout recupérer (comme le fetchEarnings normal)... donc... !??
+	// ET SINON faut de toute façon asyncer ou algo, parce que sinon.... les deux vont s'executer en parallèle et y aura rien dans HOY....
+
 	var today = moment();
 	var yesterday = moment().subtract(1,'days');
     var dashboardBeginDate = moment().subtract(8,'days'); 
@@ -320,7 +404,7 @@ app.get('/dashboard',function(req,res){
 			    color: #707070 \			    
 			} \	
 			tfoot { \
-			    font-size:1.1em; \
+			    font-size:1.2em; \
 			    background-color: #ffde84; \
 			    color: #707070 \
 			} \	
@@ -330,6 +414,12 @@ app.get('/dashboard',function(req,res){
 			    border-bottom: 1px solid #ddd; \
 			    font-weight : normal \
 			} \
+			.visits { \
+				font-size:1.1em; \
+				font-style:italic; \
+				background-color: #f7e3ad; \
+			    color: #707070 \
+			} \
 			.yesterday { \
 				color: red \
 			} \
@@ -338,7 +428,7 @@ app.get('/dashboard',function(req,res){
 			} \
   		</style>` + 
   		"<div>" + 
-  		"<h1>Sidemetrics 1.1.0 - Dashboard</h1>" + 
+  		"<h1>Sidemetrics 1.2.0 - Dashboard</h1>" + 
   		`<h2>Ganancias de los últimos 7 dias</h2>`;
 
    
@@ -350,7 +440,13 @@ app.get('/dashboard',function(req,res){
 
     		async.eachSeries(users,function getUserEarnings(user,callbackEach){
 
-    			
+    			// getting Analytics user sessions    	
+    			var sessions = [];		
+    			getUserSessions(user,dashboardBeginDate,yesterday,sessions,function(){
+    				console.log('[%s] callback from getUserSessions',username);
+    			})
+    			// RISK: sessions will not be populated yet when you use it... let's see....
+
     			var username = user.username;
 				var incomeproviders = getIncomeProviders();				
 				
@@ -432,6 +528,52 @@ app.get('/dashboard',function(req,res){
 	          				userHtml += '</tr>';
 	          			}
 
+	          			var totalAyer = totalByDays[daysArray[daysArray.length-1]];
+
+
+	          			if (sessions && sessions.days && sessions.month && sessions.month > 0){
+	          				// we have statistics about visits
+
+	          				//var sessionsYesterday = sessions.days[yesterday.format('YYYY-MM-DD')];
+		          			var sessionsMonth = sessions.month;
+
+		          			var earningsPerVisitorDays = [];//(totalToday*100 / sessionsYesterday).toFixed(2);
+		          			var earningsPerVisitorMonth = (totalMonth*100 / sessionsMonth);
+
+		          			// NUMBER OF VISITS
+		          			userHtml += `<tr class="visits"><td>Visitas</td>`;
+
+		          			for (var i = 0; i<daysArray.length-1;i++){
+		          				var sessionsByDay = sessions.days[daysArray[i]];
+		          				//earningsPerVisitorDays[daysArray[i]] = sessionsByDay*100/totalByDays[daysArrai[i]];
+		          				userHtml += `<td>${sessionsByDay}</td>`;
+		          			}
+
+		          			var totalSessionsAyer = sessions.days[daysArray[daysArray.length-1]];
+		          			
+		          			//last day
+		          			userHtml += `<td class="yesterday">${totalSessionsAyer}</td>`;
+		          			// total total
+		          			userHtml += `<td>${sessionsMonth}</td></tr>`; 
+
+
+		          			// EARNINGS PER VISITOR
+							userHtml += `<tr class="visits"><td>Ganancias por visitas</td>`;
+
+		          			for (var i = 0; i<daysArray.length-1;i++){
+		          				var earningsPerVisitorDays = (totalByDays[daysArray[i]]*100/sessions.days[daysArray[i]]);
+		          				userHtml += `<td>${earningsPerVisitorDays.toFixed(2)} €</td>`;
+		          			}
+
+		          			var earningsPerVisitorAyer = totalAyer*100/totalSessionsAyer;
+		          			
+		          			//last day
+		          			userHtml += `<td class="yesterday">${earningsPerVisitorAyer.toFixed(2)} €</td>`;
+		          			// total total
+		          			userHtml += `<td>${earningsPerVisitorMonth.toFixed(2)} €</td></tr>`; 
+						
+	          			} 
+
 	          			// TOTALS
 	          			userHtml += `</tbody><tfoot><tr><td>TOTAL GANANCIAS</td>`;
 	          			
@@ -440,15 +582,17 @@ app.get('/dashboard',function(req,res){
 	          				userHtml += `<td>${totalByDay.toFixed(2)} €</td>`;
 	          			}
 
-	          			var totalAyer = totalByDays[daysArray[daysArray.length-1]];
 	          			
 
 	          			//last day
 	          			userHtml += `<td class="yesterday">${totalAyer.toFixed(2)} €</td>`;
 	          			// total total
-	          			userHtml += `<td>${totalMonth.toFixed(2)} €</td></tr></tfoot></table>`;
-						
-					
+	          			userHtml += `<td>${totalMonth.toFixed(2)} €</td></tr></tfoot>`;
+
+	          			
+
+	          			
+	          			userHtml += `</table>`;
 
 						console.log('[%s] HTML Text in Dashboard ',username,userHtml);
 						
@@ -473,7 +617,7 @@ app.get('/dashboard',function(req,res){
 });
 
 
-const cronSendEmails = function() {
+const sendEmails = function() {
     // CRON STARTED
     var cronBegin = moment();
     console.log('CRON SEND EMAILS - BEGIN at',cronBegin);
@@ -492,6 +636,12 @@ const cronSendEmails = function() {
 
     		async.eachSeries(users,function getUserEarnings(user,callbackEach){
 
+    			// getting Analytics user sessions    	
+    			var sessions = [];		
+    			getUserSessions(user,yesterday,yesterday,sessions,function(){
+    				console.log('[%s] callback from getUserSessions',username);
+    			})
+    			// RISK: sessions will not be populated yet when you use it... let's see....
     			
     			var username = user.username;
 				var incomeproviders = getIncomeProviders();				
@@ -529,15 +679,29 @@ const cronSendEmails = function() {
 	          					totalMonth += incomeprovider.earnings.month;
 	          				}
 	          			}
-	          			mailHtml += '</p><p>Ayer (' + niceDay + ') has ganado en total <b>' + totalToday.toFixed(2) + ' €</b>. Enhorabuena, molas!! ;-) <br>' +
-	          				'Y ya has ganado <b>' + totalMonth.toFixed(2) + ' €</b> en lo que va de este mes de ' + monthname + '. Eres lo más... como lo haces?</p>';
+	          		
+	          			var sessionsYesterday = sessions.days[yesterday.format('YYYY-MM-DD')];
+	          			var sessionsMonth = sessions.month;
+
+	          			var earningsPerVisitorYesterday = (totalToday*100 / sessionsYesterday);
+	          			var earningsPerVisitorMonth = (totalMonth*100 / sessionsMonth);
+
+	          			mailHtml += '</p><p>Resumén de ayer (' + niceDay + ') :';
+	          			mailHtml += '<ul><li>Has ganado <b>' + totalToday.toFixed(2) + ' €</b></li>';
+	          			mailHtml += '<li>Has recibido <b>' + sessionsYesterday + ' visitas</b></li>';
+	          			mailHtml += '<li>Eso es una ganancia media de <b>' + earningsPerVisitorYesterday.toFixed(2) + ' centimos por visitas</b></li></ul></p>';
+	          		
+	          			mailHtml +=	'<p>Resumén del mes de ' + monthname + ':';
+	          			mailHtml += '<ul><li>En total, ya has ganado <b>' + totalMonth.toFixed(2) + ' €</b> en ' + monthname + '... Estamos locos?</li>';
+	          			mailHtml += '<li>Has tenido <b>'+ sessionsMonth +' visitas </b> durante el mes</li>';
+	          			mailHtml += '<li>Eso es una ganancia media de <b>' + earningsPerVisitorMonth.toFixed(2) + ' centimos por visitas</b> este mes</li></ul></p>';
 						
 						//console.log('[%s] Final mail about to be sent:',mailHtml);
 
 						console.log('[%s] Mail about to be sent ==> ',username,mailHtml);
 						// setup email data with unicode symbols
 						var mailOptions = {
-						    from: '"Sidemetrics 📈❤️" <no-reply@sidemetrics.com>', // sender address
+						    from: '"Sidemetrics 👩🏽🐷📈🚀❤️" <no-reply@sidemetrics.com>', // sender address
 						    to: user.email, 
 						    subject: 'Ganancias del dia ' + niceDay, // Subject line
 						    //text: mailText, // plain text body
@@ -569,8 +733,8 @@ const cronSendEmails = function() {
 };
 
 // CRON TO SEND EMAILS **/
-var taskFetchEarnings = cron.schedule('35 4 * * *', cronFetchEarnings, true);
-var taskSendEmails = cron.schedule('45 4 * * *', cronSendEmails, true);
+var taskFetchEarnings = cron.schedule('35 4 * * *', fetchEarnings, true);
+var taskSendEmails = cron.schedule('45 4 * * *', sendEmails, true);
 
  
 

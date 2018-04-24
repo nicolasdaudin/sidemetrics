@@ -74,7 +74,7 @@ router.get('/oauth2callback',function(req,res){
 							// create a new token
 							// BE CAREFUL WITH THE REFRESH TOKEN. IT IS ONLY SET ON THE FIRST CONNECTION. 
 							// AFTERWARDS NO REFRESH TOKEN, YOU NEED TO REVOKE THE ACCESS FROM THE GOOGLE ADMIN PANEL
-							console.log('No token retrieved from DB. We create a new one');						
+							console.log(' Adsense - No token retrieved from DB. We create a new one');						
 							var token = new Credentials.Adsense ({
 								user_id : user._id,
 								accessToken : tokensOAuth.access_token,
@@ -90,14 +90,14 @@ router.get('/oauth2callback',function(req,res){
 	  						});
 						} else {
 							// update the token
-							console.log('[%s] Credentials.Adsense retrieved from DB. We will update it.',username);
+							console.log('[%s] Adsense - Credentials.Adsense retrieved from DB. We will update it.',username);
 							Credentials.Adsense.findOneAndUpdate(
 								{user_id: user._id}, 
 								(tokensOAuth.refresh_token  ?  
 									{accessToken:  tokensOAuth.access_token, refreshToken : tokensOAuth.refresh_token}: 
 									{accessToken:  tokensOAuth.access_token}), {new:true}, function(err,token){
 							    	if (err){
-							    		console.log('error while updating tokens',err);
+							    		console.log('Adsense - error while updating tokens',err);
 							    	} else {
 							    		//console.log('updated token saved in DB',token);
 							    	}
@@ -127,14 +127,14 @@ router.get('/earnings/:username',function(req,res){
 
 	User.findByUsername(username,function(err,user){
 		if (err){
-			console.log('Error while retrieving user',err);
+			console.log('Adsense - Error while retrieving user',err);
 			callback(err,null);
 		} else {
 			//console.log('user',user);
 			var yesterday = moment().subtract(1,'days'); 
 			getEarningsSeveralDays(user._id,username,yesterday,yesterday,function(err,result){
 				if (err){
-					console.log("Returned from getEarnings (Adsense) with ERROR");
+					console.log("Adsense - Returned from getEarnings (Adsense) with ERROR");
 					res.send("Returned from getEarnings (Adsense) with ERROR");
 				} else {
 					//console.log("FINAL  RESULT",result);
@@ -152,7 +152,7 @@ router.get('/historic/:username/:months',function(req,res){
 
 	User.findByUsername(username,function(err,user){
 		if (err){
-			console.log('Error while retrieving user',err);
+			console.log('Adsense - Error while retrieving user',err);
 			callback(err,null);
 		
 		} else {
@@ -162,7 +162,7 @@ router.get('/historic/:username/:months',function(req,res){
 
 			getEarningsSeveralDays(user._id,username,beginDay,yesterday,function(err,result){
 				if (err){
-					console.log("Returned from getEarnings (Adsense) with ERROR");
+					console.log("Adsense - Returned from getEarnings (Adsense) with ERROR");
 					res.send("Returned from getEarnings (Adsense) with ERROR");
 				} else {
 					//console.log("FINAL  RESULT",result);
@@ -193,10 +193,10 @@ var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 	async.waterfall([	
 
 		function retrieveAdsenseTokens(callback){
-			console.log('[%s] retrieveAdsenseTokens',username);
+			console.log('[%s] Adsense - retrieveAdsenseTokens',username);
 			Credentials.Adsense.findOne({user_id: user_id}, function(err,tokenObject){
 				if (err){
-					console.log('[%s] No token found',username);
+					console.log('[%s] Adsense - No token found',username);
 					callback(err, null);
 				} else {
 					//console.log('[%s] token: ',username, tokenObject);
@@ -226,13 +226,13 @@ var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 			//console.log('[%s] ##### Before Calling list',username);
 			adsense.accounts.list({maxResults:10},function(err,result){
 				if (err){
-					console.log('[%s] Error while retrieving accounts',username, err);
+					console.error('[%s] Adsense - Error while retrieving accounts',username, err);
 					callback(err, null);
 				} else {
 					//console.log('Accounts',result);
 					//console.log('My account',result.items[0]);
 					accountId = result.items[0].id;
-					//console.log('[%s] AccountId retrieved: ',username,accountId);
+					console.log('[%s] Adsense - AccountId retrieved: ',username,accountId);
 
 					callback(null,accountId);
 				}
@@ -255,7 +255,7 @@ var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 			//console.log('[%s] oauth2Client',username,oauth2Client);
 			adsense.accounts.reports.generate(params,function(err,result){
 				if (err){
-					console.log('[%s] Error while getting earnings',username,err);
+					console.log('[%s] Adsense - Error while getting earnings',username,err);
 					callback(err, null);
 				} else {
 					//console.log('[%s] Successfull',username);
@@ -276,10 +276,10 @@ var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 					Income.Adsense.findOneAndUpdate({ user_id: user_id, date: tempDay},{ income : tempEarning},{upsert:true},function(err){
 					
 						if (err){
-							console.log('[%s] Error while saving Adsense earnings (%s) into DB. Error : ',username,item,err.errmsg);
+							console.log('[%s] Adsense - Error while saving Adsense earnings (%s) into DB. Error : ',username,item,err.errmsg);
 							//callback(null,result);
 						} else {
-							console.log('[%s] Saved Adsense earnings in DB:',username,item);
+							console.log('[%s] Adsense - Saved Adsense earnings in DB:',username,item);
 							//callback(null,result);
 						}
 					});
@@ -324,7 +324,7 @@ var getMonthEarnings = function(user_id,username,day,after){
 				after(err,null);
 			} 
 				
-			console.log("Success with getMonthEearnings ADSENSE. Result: ",result);
+			console.log("Adsense - Success with getMonthEearnings ADSENSE. Result: ",result);
 			if (result && result[0]){
 				after(null,result[0].total);
 			} else {
