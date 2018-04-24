@@ -55,7 +55,7 @@ router.get('/oauth2callback',function(req,res){
 		process.env.AUTH_GOOGLE_ANALYTICS_REDIRECT_URL);
 
 	oauth2Client.getToken(code,function(err,tokensOAuth){
-		//console.log('tokensOAuth',tokensOAuth);
+		console.log('tokensOAuth',tokensOAuth);
 		if (!err){
 			oauth2Client.setCredentials(tokensOAuth);
 
@@ -90,7 +90,7 @@ router.get('/oauth2callback',function(req,res){
 	  						});
 						} else {
 							// update the token
-							console.log('[%s]  Analytics -Credentials.Analytics retrieved from DB (for ANALYTICS). We will update it.',username);
+							console.log('[%s]  Analytics - Credentials.Analytics retrieved from DB (for ANALYTICS). We will update it.',username);
 							Credentials.Analytics.findOneAndUpdate(
 								{user_id: user._id}, 
 								(tokensOAuth.refresh_token  ?  
