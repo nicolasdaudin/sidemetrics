@@ -256,7 +256,9 @@ var getUserSessionsSeveralDays = function (user_id,username,startDay,endDay,afte
 			};
    
 
-			//console.log('[%s] oauth2Client',username,oauth2Client);
+			console.log('[%s] Analytics - oauth2Client',username,oauth2Client);
+			console.log('[%s] Analytics - params',username,params);
+			console.log('[%s] Analytics - params',username,JSON.stringify(params));
 			// examples of use : https://developers.google.com/analytics/devguides/reporting/core/v4/samples
 			// examples of methods : https://developers.google.com/analytics/devguides/reporting/core/v4/rest/v4/reports/batchGet
 			// le viewId correspond à l'internal id quand on récupère la liste des profiles, not the account id...c'est aussi le viewId sur Google Analytics
