@@ -264,9 +264,11 @@ var getUserSessionsSeveralDays = function (user_id,username,startDay,endDay,afte
 			// le viewId correspond à l'internal id quand on récupère la liste des profiles, not the account id...c'est aussi le viewId sur Google Analytics
 			// pour le récupérer programmatiquement j'imagine qu'il faut passer par autre chose que anayticsreporting.reports.batchGet... 
 			// https://developers.google.com/analytics/devguides/config/mgmt/v3/mgmtReference/
-			analyticsreportingapi.reports.batchGet(params,function(err,result){
+			analyticsreportingapi.reports.batchGet(params,function(err,result,response){
 				if (err){
 					console.log('[%s] Analytics - Error while getting user sessions',username,err);
+					console.log(response.body.error);
+        			console.log(response.body.error_description);
 					callback(err, null);
 				} else {
 					callback(null, result);
@@ -322,7 +324,7 @@ var getUserSessionsSeveralDays = function (user_id,username,startDay,endDay,afte
 		}
 	], function(err,result){
 		if (err){
-			console.log('[%s] Analytics - final function err',username,err);
+			//console.log('[%s] Analytics - final function err',username,err);
 			after('error',null);
 		} else {
 			//console.log('[%s] Analytics - final result',username,result);
