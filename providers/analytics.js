@@ -31,6 +31,7 @@ router.get('/connect/:username',function(req,res){
 	var url = oauth2Client.generateAuthUrl({
 		access_type : 'offline',
 		scope: scopes,
+		prompt: 'consent',
 		state: encodeURIComponent(JSON.stringify(user))
 	});
 
