@@ -56,7 +56,7 @@ router.get('/oauth2callback',function(req,res){
 		process.env.AUTH_GOOGLE_ANALYTICS_REDIRECT_URL);
 
 	oauth2Client.getToken(code,function(err,tokensOAuth){
-		console.log('tokensOAuth',tokensOAuth);
+		//console.log('tokensOAuth',tokensOAuth);
 		if (!err){
 			oauth2Client.setCredentials(tokensOAuth);
 
@@ -75,7 +75,7 @@ router.get('/oauth2callback',function(req,res){
 							// create a new token
 							// BE CAREFUL WITH THE REFRESH TOKEN. IT IS ONLY SET ON THE FIRST CONNECTION. 
 							// AFTERWARDS NO REFRESH TOKEN, YOU NEED TO REVOKE THE ACCESS FROM THE GOOGLE ADMIN PANEL
-							console.log(' Analytics -No token retrieved from DB (for ANALYTICS). We create a new one');						
+							console.log(' Analytics - No token retrieved from DB (for ANALYTICS). We create a new one');						
 							var token = new Credentials.Analytics ({
 								user_id : user._id,
 								accessToken : tokensOAuth.access_token,
@@ -255,11 +255,7 @@ var getUserSessionsSeveralDays = function (user_id,username,startDay,endDay,afte
 				    ]
 				}
 			};
-   
-
-			//console.log('[%s] Analytics - oauth2Client',username,oauth2Client);
-			console.log('[%s] Analytics - params',username,params);
-			console.log('[%s] Analytics - params',username,JSON.stringify(params));
+  
 			// examples of use : https://developers.google.com/analytics/devguides/reporting/core/v4/samples
 			// examples of methods : https://developers.google.com/analytics/devguides/reporting/core/v4/rest/v4/reports/batchGet
 			// le viewId correspond à l'internal id quand on récupère la liste des profiles, not the account id...c'est aussi le viewId sur Google Analytics
@@ -267,9 +263,7 @@ var getUserSessionsSeveralDays = function (user_id,username,startDay,endDay,afte
 			// https://developers.google.com/analytics/devguides/config/mgmt/v3/mgmtReference/
 			analyticsreportingapi.reports.batchGet(params,function(err,result,response){
 				if (err){
-					console.log('[%s] Analytics - Error while getting user sessions',username,err);
-					console.log(response.body.error);
-        			console.log(response.body.error_description);
+					console.log('[%s] Analytics - Error while getting user sessions: %s - %s',username,response.body.error,response.body.error_description);					
 					callback(err, null);
 				} else {
 					callback(null, result);

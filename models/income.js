@@ -76,14 +76,14 @@ var getDayEarnings = function(user_id,username, begin,end, incomesource, incomem
   
 	var beginDate = begin.format('YYYY-MM-DD');
 	var endDate = end.format('YYYY-MM-DD');
-	console.log('Income.getDayEarnings - args: username[%s],begin[%s],end[%s],incomesource[%s]',username,beginDate,endDate,incomesource);
+	//console.log('Income.getDayEarnings - args: username[%s],begin[%s],end[%s],incomesource[%s]',username,beginDate,endDate,incomesource);
 	incomemodel.find({user_id : user_id, date: {$gte : new Date(beginDate), $lte:new Date(endDate)}},function (err,result){
       // result is of type 'model'. Don't ask why, it's the way it appears when we debug...
       	if (err) {
       		console.log('[%s] ERROR for getDayEarnings between %s and %s, for source %s :',username,beginDate,endDate,incomesource, err);
       		callback(err,false);
       	} else {
-      		console.log('[%s] getDayEarnings between %s and %s, for source %s. Income is',username,beginDate,endDate,incomesource,result);
+      		console.log('[%s] SUCCESSFULLY finished getDayEarnings between %s and %s, for source %s',username,beginDate,endDate,incomesource);
       		callback(null,result);
       	} 
   	});
@@ -91,7 +91,7 @@ var getDayEarnings = function(user_id,username, begin,end, incomesource, incomem
 
 var getMonthEarnings = function(user_id,username, day, incomesource, incomemodel,callback){
   var monthNumber = day.month() + 1;
-  console.log('Income.getMonthEarnings - args: user_id[%s],username[%s],month[%s],incomesource[%s]',user_id,username,monthNumber,incomesource);
+  //console.log('[%s] Income.getMonthEarnings - args: user_id[%s],username[%s],month[%s],incomesource[%s]',username,user_id,username,monthNumber,incomesource);
   
 
   incomemodel.aggregate([
@@ -104,14 +104,14 @@ var getMonthEarnings = function(user_id,username, day, incomesource, incomemodel
       {$group: { _id: "$user_id", total: {$sum: "$income"}}}
     ],
     function(err,result){
-      console.log("Income.getMonthEarnings - aggreggate - err: %s - result: %s ",err,JSON.stringify(result));
+      //console.log("[%s] Income.getMonthEarnings - aggreggate - err: %s - result: %s ",username,err,JSON.stringify(result));
       
       if (err){
         console.log("Error",err);
         callback(err,null);
       } 
 
-      console.log("Success with getMonthEearnings. Result: ",result);
+      console.log("[%s] Success with getMonthEearnings. Result: ",username, result);
       if (result && result[0]){
         callback(null,result[0].total);
       } else {
