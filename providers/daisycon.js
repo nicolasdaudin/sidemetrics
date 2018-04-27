@@ -214,7 +214,7 @@ transaction_disapproved_amount: 0 } ]*/
 			});
 
 			curl.on('error',function(err,errCode){
-				console.log('[%s] Error while getting publisher id',username,err);
+				console.log('[%s] Error while retrieving daisycon earnings',username,err);
 				callback(err,null);
 			});
 

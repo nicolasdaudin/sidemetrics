@@ -53,6 +53,12 @@ var gamblingAffiliationIncomeSchema = new mongoose.Schema({
   income: Number
 });
 
+var awinIncomeSchema = new mongoose.Schema({
+  user_id : { type: mongoose.Schema.Types.ObjectId },
+  date : { type : Date },
+  income: Number
+});
+
 adsenseIncomeSchema.index({user_id:1,date:1}, {unique: true});
 tradetrackerIncomeSchema.index({user_id:1,date:1}, {unique: true});
 moolineoIncomeSchema.index({user_id:1,date:1}, {unique: true});
@@ -61,6 +67,7 @@ thinkactionIncomeSchema.index({user_id:1,date:1}, {unique: true});
 dgmaxIncomeSchema.index({user_id:1,date:1}, {unique: true});
 daisyconIncomeSchema.index({user_id:1,date:1}, {unique: true});
 gamblingAffiliationIncomeSchema.index({user_id:1,date:1}, {unique: true});
+awinIncomeSchema.index({user_id:1,date:1}, {unique: true});
 
 
 var Adsense = mongoose.model('AdsenseIncome', adsenseIncomeSchema);
@@ -71,6 +78,7 @@ var Thinkaction = mongoose.model('ThinkactionIncome',thinkactionIncomeSchema);
 var Dgmax = mongoose.model('DgmaxIncome',dgmaxIncomeSchema);
 var Daisycon = mongoose.model('DaisyconIncome',daisyconIncomeSchema);
 var GamblingAffiliation = mongoose.model('GamblingAffiliationIncome',gamblingAffiliationIncomeSchema);
+var Awin = mongoose.model('AwinIncome',awinIncomeSchema);
 
 var getDayEarnings = function(user_id,username, begin,end, incomesource, incomemodel,callback){
   
@@ -123,4 +131,4 @@ var getMonthEarnings = function(user_id,username, day, incomesource, incomemodel
 };
 
 
-module.exports = { Adsense, Tradetracker, Moolineo, Loonea, Thinkaction, Dgmax, Daisycon, GamblingAffiliation,getDayEarnings,getMonthEarnings} ;
+module.exports = { Adsense, Tradetracker, Moolineo, Loonea, Thinkaction, Dgmax, Daisycon, GamblingAffiliation, Awin,getDayEarnings,getMonthEarnings} ;

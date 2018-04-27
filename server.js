@@ -17,6 +17,7 @@ var thinkaction = require ('./providers/thinkaction');
 var dgmax = require ('./providers/dgmax');
 var daisycon = require('./providers/daisycon');
 var gamblingaffiliation = require('./providers/gamblingaffiliation');
+var awin = require('./providers/awin');
 
 var Income = require('./models/income');
 var AnalyticsModel = require('./models/analytics');
@@ -31,7 +32,8 @@ var getIncomeProviders = function (){
 		{source:'Thinkaction - Toluna',dbname:'thinkaction',provider:thinkaction,credentials_model:Credentials.Thinkaction,income_model:Income.Thinkaction},
 		{source:'DGMax Interactive (convertido a EUR)',dbname:'dgmax',provider:dgmax,credentials_model:Credentials.Dgmax,income_model:Income.Dgmax},
 		{source:'Daisycon',dbname:'daisycon',provider:daisycon,credentials_model:Credentials.Daisycon,income_model:Income.Daisycon},
-		{source:'Gambling Affiliation',dbname:'gambling',provider:gamblingaffiliation,credentials_model:Credentials.GamblingAffiliation,income_model:Income.GamblingAffiliation}
+		{source:'Gambling Affiliation',dbname:'gambling',provider:gamblingaffiliation,credentials_model:Credentials.GamblingAffiliation,income_model:Income.GamblingAffiliation},
+		{source:'Awin',dbname:'awin',provider:awin,credentials_model:Credentials.Awin,income_model:Income.Awin}
 	]
 };
 
@@ -70,6 +72,7 @@ app.use('/thinkaction',thinkaction.router);
 app.use('/dgmax',dgmax.router);
 app.use('/daisycon',daisycon.router);
 app.use('/gamblingaffiliation',gamblingaffiliation.router);
+app.use('/awin',awin.router);
 
 app.get('/', function (req, res) {
   var homepageHtml = 
@@ -83,15 +86,16 @@ app.get('/', function (req, res) {
 		"<li><a href='/cron/sendEmails'>CRON sendEmails</a></li>"+  
   		"</ul>" +  		
   		"<h2>TESTING</h2>" + 
-  		"<ul>"+
-  		"<li>Analytics connect: <a href='/analytics/connect/nicdo77'>nicdo77</a> - <a href='/analytics/connect/jimena123'>jimena123</a></li>"+  		
-  		"<li>Analytics user sessions: <a href='/analytics/usersessions/nicdo77'>nicdo77 (yesterday)</a> - <a href='/analytics/usersessions/jimena123'>jimena123 (yesterday)</a></li>"+
-  		"<li>Analytics HISTORIC 6 months: <a href='/analytics/historic/nicdo77/1'>nicdo77</a> - <a href='/analytics/historic/jimena123/1'>jimena123</a></li>" + 
+  		"<ul>"+  		
+  		"<li>AWin normal: <a href='/awin/earnings/nicdo77'>nicdo77 (yesterday)</a></li>" + 
+  		"<li>Awin 1 months: <a href='/awin/historic/nicdo77/1'>nicdo77</a></li>" + 
   		"</ul>" +  		
   		"<h2>Working - Normal</h2>" + 
   		"<ul>"+
   		"<li>Adsense connect: <a href='/adsense/connect/nicdo77'>nicdo77</a></li>"+  		
   		"<li>Adsense earnings: <a href='/adsense/earnings/nicdo77'>nicdo77 (yesterday)</a> - <a href='/adsense/earnings/jimena123'>jimena123 (yesterday)</a></li>"+
+  		"<li>Analytics connect: <a href='/analytics/connect/nicdo77'>nicdo77</a> - <a href='/analytics/connect/jimena123'>jimena123</a></li>"+  		
+  		"<li>Analytics user sessions: <a href='/analytics/usersessions/nicdo77'>nicdo77 (yesterday)</a> - <a href='/analytics/usersessions/jimena123'>jimena123 (yesterday)</a></li>"+
   		"<li>Tradetracker earnings: <a href='/tradetracker/earnings/nicdo77'>nicdo77 (yesterday)</a> - <a href='/tradetracker/earnings/jimena123'>jimena123 (yesterday)</a></li>"+
   		"<li>Moolineo earnings: <a href='/moolineo/earnings/nicdo77'>nicdo77 (yesterday)</a></li>" +
   		"<li>Loonea earnings: <a href='/loonea/earnings/nicdo77'>nicdo77 (yesterday)</a></li>" +
@@ -103,10 +107,11 @@ app.get('/', function (req, res) {
   		"<h2>Working - Historic</h2>" +   		
   		"<ul>"+
   		"<li>Adsense 6 months: <a href='/adsense/historic/nicdo77/6'>nicdo77</a> - <a href='/adsense/historic/jimena123/6'>jimena123</a></li>" + 
+  		"<li>Analytics 1 months: <a href='/analytics/historic/nicdo77/1'>nicdo77</a> - <a href='/analytics/historic/jimena123/1'>jimena123</a></li>" + 
   		"<li>Thinkaction 6 months: <a href='/thinkaction/historic/nicdo77/6'>nicdo77</a> - <a href='/thinkaction/historic/jimena123/6'>jimena123</a></li>" + 
   		"<li>Daisycon 6 months: <a href='/daisycon/historic/nicdo77/6'>nicdo77</a> - <a href='/daisycon/historic/jimena123/6'>jimena123</a></li>" + 
   		"<li>Tradetracker 6 months: <a href='/tradetracker/historic/nicdo77/6'>nicdo77</a> - <a href='/tradetracker/historic/jimena123/6'>jimena123</a></li>" + 
-  		"<li>Gambling Affiliation 6 months: <a href='/gamblingaffiliation/historic/nicdo77/6'>nicdo77</a></li>" + 
+  		"<li>Gambling Affiliation 6 months: <a href='/gamblingaffiliation/historic/nicdo77/6'>nicdo77</a> - <a href='/gamblingaffiliation/historic/jimena123/6'>jimena123</a></li>" + 
   		"</ul>" + 
   		"</div>";
   res.send(homepageHtml);

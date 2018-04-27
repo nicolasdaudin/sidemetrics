@@ -272,22 +272,7 @@ var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 							
 						}).bind(tempEarning));
 
-						/**tradetrackerIncome.save((function(err){
-							if (err){
-								
-								if (err.name && err.name === 'MongoError' && err.code === 11000){ 
-									console.log('[%s] DUPLICATE record while saving Tradetracker earnings (%s) into DB. Error: ',username,JSON.stringify(this),err.errmsg);
-								} else {
-									console.log('[%s] Error while saving Tradetracker earnings  (%s) into DB. Error : ',username,JSON.stringify(this),err.errmsg);
-									error = error.concat(err.errmsg+ '\n');
-									//callback(null,result);
-								}
-							} else {
-								console.log('[%s] Saved Tradetracker earnings in DB: (%s) ',username,JSON.stringify(this));
-								//callback(null,result);
-							}
-							
-						}).bind(tempEarning));**/
+						
 					}
 					earningDate = moment(tempDay).add(1,'days').format('YYYY-MM-DD');
 				} while (continueLoop);
