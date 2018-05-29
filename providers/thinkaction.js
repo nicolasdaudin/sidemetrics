@@ -120,7 +120,7 @@ var getEarningsSeveralDays = function(user_id,username,startDay,endDay,after){
 
 			curl.setOpt(Curl.option.URL,url);
 			//curl.setOpt(Curl.option.HTTPHEADER, [authheader,'Accept: application/json'] );
-			//curl.setOpt(Curl.option.VERBOSE, true );
+			curl.setOpt(Curl.option.VERBOSE, true );
 
 			curl.on('end', function(statusCode,body,headers){
 				var result = JSON.parse(body);
@@ -131,7 +131,7 @@ var getEarningsSeveralDays = function(user_id,username,startDay,endDay,after){
 			});
 
 			curl.on('error',function(err,errCode){
-				console.log('[%s] Error while getting publisher id',username,err);
+				console.log('[%s] Error while getting publisher id : %s - %s',username,err,err.errmsg);
 				callback(err,null);
 			});
 
