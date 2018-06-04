@@ -133,6 +133,7 @@ var getEarnings = function(user_id,username,day,after){
 	});
 };
 
+/*
 var getMonthEarnings = function(user_id,username,day,after){
 	console.log("[%s] #### getMonthEarnings for Loonea",username);
 	var monthNumber = day.month() + 1;
@@ -158,5 +159,6 @@ var getMonthEarnings = function(user_id,username,day,after){
 	);
 	//console.log("######### getMonthEarnings END");
 };
+*/
 
-module.exports = {router ,getEarnings, getMonthEarnings};
+module.exports = {router ,getEarnings};//, getMonthEarnings};

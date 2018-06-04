@@ -340,7 +340,7 @@ var getUserEarningsByIncome = function(user,begin,end,incomeprovider,callback){
 					console.log("[%s] server.js - Back from getDayEarnings for %s with error: ",username,incomesource,err);
 					callback();
 				} else {
-					console.log("[%s] Back from getDayEarnings between %s and %s for %s",username,begin,end,incomesource);		
+					console.log("[%s] server.js - Back from getDayEarnings between %s and %s for %s",username,begin,end,incomesource);		
 
 					incomeprovider.earnings = {days : []};
 					result.forEach(function(item){
@@ -352,12 +352,12 @@ var getUserEarningsByIncome = function(user,begin,end,incomeprovider,callback){
 					
 				
 					Income.getMonthEarnings(user._id,username,end,incomesource,incomeprovider.income_model,function(err,result){
-						console.log('callback from getMonthEarnings - result=%s - err=%s',JSON.stringify(result),err);
+						//console.log('[%s] callback from getMonthEarnings - result=%s - err=%s',JSON.stringify(result),err);
 						if (err){
 							console.log("[%s] server.js - Back from getMonthEarnings for %s with error: ",username,incomesource,err);
 							callback();
 						} else {
-							console.log("[%s] Back from getMonthEarnings for day %s for %s with earnings: ",username,end,incomesource,result);		
+							console.log("[%s] server.js - Back from getMonthEarnings for day %s for %s with earnings: ",username,end,incomesource,result);		
 
 							incomeprovider.earnings.month = new Number(result);
 							callback();

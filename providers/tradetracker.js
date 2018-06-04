@@ -293,7 +293,7 @@ var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 	});
 };
 
-var getMonthEarnings = function(user_id,username,day,after){
+/*var getMonthEarnings = function(user_id,username,day,after){
 	console.log("[%s] #### getMonthEarnings for Tradetracker",username);
 	var monthNumber = day.month() + 1;
 	//console.log("Month [%s] with number [%s]",day.format('MMMM'),monthNumber);
@@ -323,6 +323,6 @@ var getMonthEarnings = function(user_id,username,day,after){
 		}
 	);
 	//console.log("######### getMonthEarnings END");
-};
+};*/
 
-module.exports = {router ,getEarnings, getMonthEarnings};
+module.exports = {router ,getEarnings};//, getMonthEarnings};
