@@ -27,12 +27,12 @@ var getIncomeProviders = function (){
 	return [
 		{source:'Google Adsense',dbname:'adsense',provider:adsense,credentials_model:Credentials.Adsense,income_model:Income.Adsense},
 		{source:'TradeTracker',dbname:'tradetracker',provider:tradetracker,credentials_model:Credentials.Tradetracker,income_model:Income.Tradetracker},
-		{source:'Moolineo',dbname:'moolineo',provider:moolineo,credentials_model:Credentials.Moolineo,income_model:Income.Moolineo},
+		/*{source:'Moolineo',dbname:'moolineo',provider:moolineo,credentials_model:Credentials.Moolineo,income_model:Income.Moolineo},
 		{source:'Loonea',dbname:'loonea',provider:loonea,credentials_model:Credentials.Loonea,income_model:Income.Loonea},
 		{source:'Thinkaction - Toluna',dbname:'thinkaction',provider:thinkaction,credentials_model:Credentials.Thinkaction,income_model:Income.Thinkaction},
 		{source:'DGMax Interactive (convertido a EUR)',dbname:'dgmax',provider:dgmax,credentials_model:Credentials.Dgmax,income_model:Income.Dgmax},
 		{source:'Daisycon',dbname:'daisycon',provider:daisycon,credentials_model:Credentials.Daisycon,income_model:Income.Daisycon},
-		{source:'Gambling Affiliation',dbname:'gambling',provider:gamblingaffiliation,credentials_model:Credentials.GamblingAffiliation,income_model:Income.GamblingAffiliation},
+		{source:'Gambling Affiliation',dbname:'gambling',provider:gamblingaffiliation,credentials_model:Credentials.GamblingAffiliation,income_model:Income.GamblingAffiliation},*/
 		{source:'Awin',dbname:'awin',provider:awin,credentials_model:Credentials.Awin,income_model:Income.Awin}
 	]
 };
@@ -334,6 +334,7 @@ var getUserEarningsByIncome = function(user,begin,end,incomeprovider,callback){
 			// - getEarnings and getMonthEarnings could be done in parallel
 			// - and also, probably, getEarnings can retrieve earnings for day, month, year... all in one call. No?
 			
+			// recupère les daily earnings pour cet incomesource entre les dates 'begin' et les dates 'end'
 			Income.getDayEarnings(user._id,username,begin,end,incomesource,incomeprovider.income_model,function(err,result){
 				//console.log('callback from getDayEarnings - result=%s - err=%s',JSON.stringify(result),err);
 				if (err){
@@ -350,7 +351,7 @@ var getUserEarningsByIncome = function(user,begin,end,incomeprovider,callback){
 						incomeprovider.earnings.days[itemDate] = new Number(itemEarning);
 					});
 					
-				
+					// calcule le total pour le mois en cours
 					Income.getMonthEarnings(user._id,username,end,incomesource,incomeprovider.income_model,function(err,result){
 						//console.log('[%s] callback from getMonthEarnings - result=%s - err=%s',JSON.stringify(result),err);
 						if (err){
@@ -651,82 +652,85 @@ const sendEmails = function() {
     			var username = user.username;
 				var incomeproviders = getIncomeProviders();				
 				
-				async.eachSeries(incomeproviders,function (incomeprovider,callbackSmallEach){
-					getUserEarningsByIncome(user,yesterday,yesterday,incomeprovider,function(){
-						console.log('[%s] callback from getUserEarningsByIncome',username);
-						callbackSmallEach();
-					});
-				},    			
-    			function sendEmails(err){
-    				
-    				if (err) {
-    					console.error('[%s] error:',username,err);
-    				} else {
-	    				//console.log('[%s] earnings:',username,earnings);
-	    				//console.log('[%s] earnings:',username,incomeproviders);
-	    				console.log('[%s] about to send email to',username,user.email);
-						var mailHtml = 'Querid@ ' + username +', aquí va el detalle de lo que has ganado ayer (' + niceDay +').<p>';
-						var totalToday = 0;
-						var totalMonth = 0;
-						for (var i = 0; i < incomeproviders.length; i++) {
-							
-							var incomeprovider = incomeproviders[i];
-		          			if (incomeprovider.earnings){
-		          				var earningsYesterday = 0;
-		          				if (incomeprovider.earnings.days && incomeprovider.earnings.days[yesterday.format('YYYY-MM-DD')]){
-		          					earningsYesterday = incomeprovider.earnings.days[yesterday.format('YYYY-MM-DD')];
-		          				}
-		          				var mailPhraseSource = '<b>' + incomeprovider.source + '</b> : ' + earningsYesterday + 
-		          					' <i>(Total for ' + monthname  + ' : ' + incomeprovider.earnings.month + ')</i><br>';
-	          					//console.log(mailPhraseSource);
-	          					mailHtml += mailPhraseSource;
-	          					totalToday += earningsYesterday;
-	          					totalMonth += incomeprovider.earnings.month;
-	          				}
-	          			}
-	          		
-	          			var sessionsYesterday = sessions.days[yesterday.format('YYYY-MM-DD')];
-	          			var sessionsMonth = sessions.month;
-
-	          			var earningsPerVisitorYesterday = (totalToday*100 / sessionsYesterday);
-	          			var earningsPerVisitorMonth = (totalMonth*100 / sessionsMonth);
-
-	          			mailHtml += '</p><p>Resumén de ayer (' + niceDay + ') :';
-	          			mailHtml += '<ul><li>Has ganado <b>' + totalToday.toFixed(2) + ' €</b></li>';
-	          			mailHtml += '<li>Has recibido <b>' + sessionsYesterday + ' visitas</b></li>';
-	          			mailHtml += '<li>Eso es una ganancia media de <b>' + earningsPerVisitorYesterday.toFixed(2) + ' centimos por visitas</b></li></ul></p>';
-	          		
-	          			mailHtml +=	'<p>Resumén del mes de ' + monthname + ':';
-	          			mailHtml += '<ul><li>En total, ya has ganado <b>' + totalMonth.toFixed(2) + ' €</b> en ' + monthname + '... Estamos locos?</li>';
-	          			mailHtml += '<li>Has tenido <b>'+ sessionsMonth +' visitas </b> durante el mes</li>';
-	          			mailHtml += '<li>Eso es una ganancia media de <b>' + earningsPerVisitorMonth.toFixed(2) + ' centimos por visitas</b> este mes</li></ul></p>';
-						
-						//console.log('[%s] Final mail about to be sent:',mailHtml);
-
-						console.log('[%s] Mail about to be sent ==> ',username,mailHtml);
-						// setup email data with unicode symbols
-						var mailOptions = {
-						    from: '"Sidemetrics 👩🏽🐷📈🚀❤️" <no-reply@sidemetrics.com>', // sender address
-						    to: user.email, 
-						    subject: 'Ganancias del dia ' + niceDay, // Subject line
-						    //text: mailText, // plain text body
-						    html: mailHtml // html body
-						};
-
-						// send mail with defined transport object
-						transporter.sendMail(mailOptions, function(err, info){
-						    if (err) {
-						        console.log("[%s] Email could not be sent to %s. Error : ", username,user.email,err);			      
-						    } else {
-						    	console.log('[%s] Email successfully sent to',username,user.email);
-						    }			    
+				async.eachSeries(
+					incomeproviders,
+					function (incomeprovider,callbackSmallEach){
+						getUserEarningsByIncome(user,yesterday,yesterday,incomeprovider,function(){
+							console.log('[%s] callback from getUserEarningsByIncome',username);
+							callbackSmallEach();
 						});
-						//console.log('[%s] TEST - EMAIL SENT',username);
-						console.log("Just before calling callbackEach()");
-    					callbackEach();
-					}
+					},    			
+	    			function sendEmails(err){
+	    				
+	    				if (err) {
+	    					console.error('[%s] error:',username,err);
+	    				} else {
+		    				//console.log('[%s] earnings:',username,earnings);
+		    				//console.log('[%s] earnings:',username,incomeproviders);
+		    				console.log('[%s] about to send email to',username,user.email);
+							var mailHtml = 'Querid@ ' + username +', aquí va el detalle de lo que has ganado ayer (' + niceDay +').<p>';
+							var totalToday = 0;
+							var totalMonth = 0;
+							for (var i = 0; i < incomeproviders.length; i++) {
+								
+								var incomeprovider = incomeproviders[i];
+			          			if (incomeprovider.earnings){
+			          				var earningsYesterday = 0;
+			          				if (incomeprovider.earnings.days && incomeprovider.earnings.days[yesterday.format('YYYY-MM-DD')]){
+			          					earningsYesterday = incomeprovider.earnings.days[yesterday.format('YYYY-MM-DD')];
+			          				}
+			          				var mailPhraseSource = '<b>' + incomeprovider.source + '</b> : ' + earningsYesterday + 
+			          					' <i>(Total for ' + monthname  + ' : ' + incomeprovider.earnings.month + ')</i><br>';
+		          					//console.log(mailPhraseSource);
+		          					mailHtml += mailPhraseSource;
+		          					totalToday += earningsYesterday;
+		          					totalMonth += incomeprovider.earnings.month;
+		          				}
+		          			}
+		          		
+		          			var sessionsYesterday = sessions.days[yesterday.format('YYYY-MM-DD')];
+		          			var sessionsMonth = sessions.month;
 
-    			});
+		          			var earningsPerVisitorYesterday = (totalToday*100 / sessionsYesterday);
+		          			var earningsPerVisitorMonth = (totalMonth*100 / sessionsMonth);
+
+		          			mailHtml += '</p><p>Resumén de ayer (' + niceDay + ') :';
+		          			mailHtml += '<ul><li>Has ganado <b>' + totalToday.toFixed(2) + ' €</b></li>';
+		          			mailHtml += '<li>Has recibido <b>' + sessionsYesterday + ' visitas</b></li>';
+		          			mailHtml += '<li>Eso es una ganancia media de <b>' + earningsPerVisitorYesterday.toFixed(2) + ' centimos por visitas</b></li></ul></p>';
+		          		
+		          			mailHtml +=	'<p>Resumén del mes de ' + monthname + ':';
+		          			mailHtml += '<ul><li>En total, ya has ganado <b>' + totalMonth.toFixed(2) + ' €</b> en ' + monthname + '... Estamos locos?</li>';
+		          			mailHtml += '<li>Has tenido <b>'+ sessionsMonth +' visitas </b> durante el mes</li>';
+		          			mailHtml += '<li>Eso es una ganancia media de <b>' + earningsPerVisitorMonth.toFixed(2) + ' centimos por visitas</b> este mes</li></ul></p>';
+							
+							//console.log('[%s] Final mail about to be sent:',mailHtml);
+
+							console.log('[%s] Mail about to be sent ==> ',username,mailHtml);
+							// setup email data with unicode symbols
+							var mailOptions = {
+							    from: '"Sidemetrics 👩🏽🐷📈🚀❤️" <no-reply@sidemetrics.com>', // sender address
+							    to: user.email, 
+							    subject: 'Ganancias del dia ' + niceDay, // Subject line
+							    //text: mailText, // plain text body
+							    html: mailHtml // html body
+							};
+
+							// send mail with defined transport object
+							transporter.sendMail(mailOptions, function(err, info){
+							    if (err) {
+							        console.log("[%s] Email could not be sent to %s. Error : ", username,user.email,err);			      
+							    } else {
+							    	console.log('[%s] Email successfully sent to',username,user.email);
+							    }			    
+							});
+							//console.log('[%s] TEST - EMAIL SENT',username);
+							console.log("Just before calling callbackEach()");
+	    					callbackEach();
+						}
+
+	    			}
+	    		);
 	    	},
 	    	function final(){	
 	    		var cronEnd = moment();    		
