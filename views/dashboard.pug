@@ -12,10 +12,8 @@
 	-return ago.subtract(7,'days').format('YYYY-MM-DD');
 -}
 -function prettyMonth(dateString){
-	-var date = new Date(dateString);
-	-var longMonthNames = [ "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre" ];
-	-var m = longMonthNames[date.getMonth()];
-	-return ''+ m;	
+	-var date = moment(dateString);
+	-return date.format('MMMM');	
 -} 
 - var incomesource = ['Adsense','Tradetracker','Moolineo','Loonea','Thinkaction','DGMax','Daisycon','GamblingAffiliation','Awin']
 html
@@ -38,10 +36,15 @@ html
 								if index === user.days.length - 1
 									td Ayer
 								else
-									td #{prettyDate(day)}
-							td
-							// DERNIÈRE COLONNE
-							td TOTAL #{prettyMonth(user.days[user.days.length-1])}
+									td #{moment(day).format('dddd D')}
+							td TOTAL 
+								br
+								.
+									#{moment(user.days[user.days.length-1]).format('MMMM')}
+							td Mes pasado 
+								br
+								.
+									(hasta el #{moment(sameDayLastMonth).format('D MMMM')})
 					
 					// CHAQUE SOURCE DE REVENUS
 					each source in incomesource	
@@ -53,12 +56,32 @@ html
 									td #{user.earnings[source].days[day].toFixed(2)} €
 								else 
 									td 0 €
-							td
-							// TOTAL SUR LE MOISPOUR CETTE SOURCE DE REVENU
+							// TOTAL SUR LE MOIS POUR CETTE SOURCE DE REVENU
 							if user.earnings[source] && user.earnings[source].month
 								td #{user.earnings[source].month.toFixed(2)} €
 							else 
 								td 0 €
+							// TOTAL SUR LE MOIS PASSE POUR CETTE SOURCE DE REVENU							
+							if (user.earnings[source] && lastmonth[userindex].earnings[source])
+								- var earningsThisMonth = user.earnings[source].month
+								- var earningsLastPeriod = lastmonth[userindex].earnings[source].period
+								if (earningsThisMonth && earningsLastPeriod)
+									- var percent = ((earningsThisMonth - earningsLastPeriod)/earningsLastPeriod)*100
+									- var percentclass = 'positive'
+									- var percentstring = '' + percent.toFixed(0);
+									- if (percent < 0) {
+									-	percentclass = 'negative'
+									- } else {
+									-	percentstring = '+' + percentstring;
+									-}
+									td #{earningsLastPeriod.toFixed(2)} € 
+										span(class=''+percentclass) (#{percentstring} %) 
+								else
+									td 0
+							else
+								td 0
+
+
 
 					// NUMERO DE VISITAS
 					tr(class='visits total')
@@ -68,12 +91,31 @@ html
 								td #{user.sessions.days[day]}
 							else 
 								td 0
-						td
-						// TOTAL NUMERO DE VISITAS
+						// TOTAL SUR LE MOIS NUMERO DE VISITAS
 						if user.sessions.month
-							td #{user.sessions.month}
+							td(rowspan=2) #{user.sessions.month}
 						else 
-							td 0
+							td(rowspan=2) 0
+						// TOTAL MOIS PASSE NUMERO DE VISITAS
+						if (user.sessions && lastmonth[userindex].sessions)
+							- var visitsThisMonth = user.sessions.month
+							- var visitsLastPeriod = lastmonth[userindex].sessions.period
+							if (visitsThisMonth && visitsLastPeriod)
+								- var percent = ((visitsThisMonth - visitsLastPeriod)/visitsLastPeriod)*100
+								- var percentclass = 'positive'
+								- var percentstring = '' + percent.toFixed(0);
+								- if (percent < 0) {
+								-	percentclass = 'negative'
+								- } else {
+								-	percentstring = '+' + percentstring;
+								-}
+								td(rowspan=2) #{visitsLastPeriod} 
+									span(class=''+percentclass) (#{percentstring} %) 
+							else
+								td(rowspan=2) 0
+						else
+							td(rowspan=2) 0
+
 					tr(class='visits oneweekago')
 						td % diferencia 7 dias
 						each day,index in user.days
@@ -81,7 +123,7 @@ html
 							- var visitsThisWeek = user.sessions.days[day]
 							- var visitsLastWeek = oneweekago[userindex].sessions.days[dayLastWeek]
 							if (visitsThisWeek && visitsLastWeek)
-								- var percent = ((visitsThisWeek - visitsLastWeek)/visitsThisWeek)*100
+								- var percent = ((visitsThisWeek - visitsLastWeek)/visitsLastWeek)*100
 								- var percentclass = 'positive'
 								- var percentstring = '' + percent.toFixed(0);
 								- if (percent < 0) {
@@ -95,23 +137,42 @@ html
 										(#{visitsLastWeek})
 							else
 								td 0
-						td
-						td 0
 
 					// GAINS PAR VISITEURS
 					tr(class='epv total')
-						td GANANCIAS POR VISITAS
+						td GANANCIAS 
+							br
+							.
+								POR 100 VISITAS
 						each day,index in user.days
 							if user.earningsPerVisitorDays[day]
 								td #{user.earningsPerVisitorDays[day].toFixed(2)} €
 							else
 								td 0 €
-						td
-						// MEDIA GAINS PAR VISITEURS SUR LE MOIS
+						
+						// MOYENNE GAINS PAR VISITEURS SUR LE MOIS
 						if user.earningsPerVisitorMonth
-							td #{user.earningsPerVisitorMonth.toFixed(2)} €
+							td(rowspan=2) #{user.earningsPerVisitorMonth.toFixed(2)} €
 						else
-							td 0 €
+							td(rowspan=2) 0 €
+
+						// MOYENNE GAINS PAR VISITEURS SUR LE MOIS PASSE
+						- var epvThisMonth = user.earningsPerVisitorMonth
+						- var epvLastPeriod = lastmonth[userindex].earningsPerVisitorPeriod
+						if (epvThisMonth && epvLastPeriod)
+							- var percent = ((epvThisMonth - epvLastPeriod)/epvLastPeriod)*100
+							- var percentclass = 'positive'
+							- var percentstring = '' + percent.toFixed(0);
+							- if (percent < 0) {
+							-	percentclass = 'negative'
+							- } else {
+							-	percentstring = '+' + percentstring;
+							-}
+							td(rowspan=2) #{epvLastPeriod.toFixed(2)} € 
+								span(class=''+percentclass) (#{percentstring} %) 
+						else
+							td(rowspan=2) 0
+						
 
 					tr(class='epv oneweekago')
 						td % diferencia 7 dias
@@ -120,7 +181,7 @@ html
 							- var epvThisWeek = user.earningsPerVisitorDays[day]
 							- var epvLastWeek = oneweekago[userindex].earningsPerVisitorDays[dayLastWeek]
 							if (epvThisWeek && epvLastWeek)
-								- var percent = ((epvThisWeek - epvLastWeek)/epvThisWeek)*100
+								- var percent = ((epvThisWeek - epvLastWeek)/epvLastWeek)*100
 								- var percentclass = 'positive'
 								- var percentstring = '' + percent.toFixed(0);
 								- if (percent < 0) {
@@ -134,8 +195,7 @@ html
 										(#{epvLastWeek.toFixed(2)}) €
 							else
 								td 0
-						td
-						td 0
+					
 
 
 					// SOMME DES GAINS
@@ -147,12 +207,29 @@ html
 									td #{user.totalByDays[day].toFixed(2)} €
 								else
 									td 0 €
-							td
+							
 							// SOMME DES GAINS SUR LE MOIS
 							if user.totalMonth
-								td #{user.totalMonth.toFixed(2)} €
+								td(rowspan=2) #{user.totalMonth.toFixed(2)} €
 							else
-								td 0 €
+								td(rowspan=2) 0 €
+
+							// SOMME DES GAINS SUR LE MOIS PASSE
+							- var earningsThisMonth = user.totalMonth
+							- var earningsLastPeriod = lastmonth[userindex].totalPeriod
+							if (earningsThisMonth && earningsLastPeriod)
+								- var percent = ((earningsThisMonth - earningsLastPeriod)/earningsLastPeriod)*100
+								- var percentclass = 'positive'
+								- var percentstring = '' + percent.toFixed(0);
+								- if (percent < 0) {
+								-	percentclass = 'negative'
+								- } else {
+								-	percentstring = '+' + percentstring;
+								-}
+								td(rowspan=2) #{earningsLastPeriod.toFixed(2)} 
+									span(class=''+percentclass) (#{percentstring} %) 
+							else
+								td(rowspan=2) 0
 
 						tr(class='oneweekago')
 							td % diferencia 7 dias
@@ -161,7 +238,7 @@ html
 								- var earningsThisWeek = user.totalByDays[day]
 								- var earningsLastWeek = oneweekago[userindex].totalByDays[dayLastWeek]
 								if (earningsThisWeek && earningsLastWeek)
-									- var percent = ((earningsThisWeek - earningsLastWeek)/earningsThisWeek)*100
+									- var percent = ((earningsThisWeek - earningsLastWeek)/earningsLastWeek)*100
 									- var percentclass = 'positive'
 									- var percentstring = '' + percent.toFixed(0);
 									- if (percent < 0) {
@@ -175,8 +252,6 @@ html
 											(#{earningsLastWeek.toFixed(2)} €)
 								else
 									td 0
-							td
-							td 0
 
 					
 

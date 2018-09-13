@@ -316,11 +316,13 @@ var getUserSessions = function(user,begin,end,sessions,callback){
 			console.log("[%s] Back from getDaySessions between %s and %s",username,begin,end);		
 
 			sessions.days = [];
+			sessions.period = 0;
 			result.forEach(function(item){
 
 				var itemDate = moment(item.date).format('YYYY-MM-DD');
 				var itemSessions = item.sessions;
 				sessions.days[itemDate] = new Number(itemSessions);
+				sessions.period += new Number(itemSessions);
 			});
 			
 		
@@ -355,7 +357,7 @@ var getUserEarningsByIncome = async function(user,begin,end,incomeprovider){
 	console.log('[%s] begin getUserEarningsByIncome',username);
 	
 	var incomesource = incomeprovider.source;
-	var earnings = {days : [],month:0};
+	var earnings = {days : [],period:0,month:0};
 
 	// first check if the user uses that income source
 	var hasCredentials = await Credentials.userHasCredentials(user._id,username,incomesource,incomeprovider.credentials_model);
@@ -379,7 +381,8 @@ var getUserEarningsByIncome = async function(user,begin,end,incomeprovider){
 			result.forEach(function(item){
 				var itemDate = moment(item.date).format('YYYY-MM-DD');
 				var itemEarning = item.income;
-				earnings.days[itemDate] = new Number(itemEarning);		
+				earnings.days[itemDate] = new Number(itemEarning);	
+				earnings.period += new Number(itemEarning);	
 			});	
 		} catch (err){
 			console.log("[%s#%s] server.js - Back from getDayEarnings with error: ",username,incomesource,err);
@@ -428,16 +431,23 @@ app.get('/dashboard',async function(req,res){
     	daysArray.push(tempday.format('YYYY-MM-DD'));
     	tempday.add(1,'days');
     } 
+    var sameDayLastMonth = moment(yesterday).subtract(1,'months');
+    var firstDayLastMonth = moment(sameDayLastMonth).startOf('month');
+
 
     var result = await computeEarnings(dashboardBeginDate,yesterday);
-    var oneweekago = await computeEarnings(beginMinus7Days,yesterdayMinus7Days);
+    var oneweekagoresult = await computeEarnings(beginMinus7Days,yesterdayMinus7Days);
+    var lastmonthresult = await computeEarnings(firstDayLastMonth,sameDayLastMonth);
 
     console.log('###### ABOUT TO DISPLAY DASHBOARD #####');
-    console.log('Result is',result);
-    console.log('oneweekago is',oneweekago);
+    //console.log('Result is',result);
+    console.log('oneweekago is',oneweekagoresult);
+    console.log('lastmonth is',lastmonthresult);
     res.render('dashboard', { 
 				result : result,
-				oneweekago : oneweekago
+				oneweekago : oneweekagoresult,
+				lastmonth: lastmonthresult,
+				sameDayLastMonth : sameDayLastMonth
 	});
 });
 
@@ -452,16 +462,24 @@ const sendEmails = async function() {
     var niceDay = yesterday.format('dddd DD MMMM YYYY');
     var monthname = yesterday.format('MMMM');
 
+	var yesterdayMinus7Days = moment(yesterday).subtract(7,'days');
+	var sameDayLastMonth = moment(yesterday).subtract(1,'months');
+    var firstDayLastMonth = moment(sameDayLastMonth).startOf('month');
+
+
     var incomeproviders = getIncomeProviders();	
 
     console.log('CRON SEND EMAILS FOR DAY',yesterday);
     // get all users
 
     var result = await computeEarnings(yesterday,yesterday);
+    var oneweekagoresult = await computeEarnings(yesterdayMinus7Days,yesterdayMinus7Days);
+    var lastmonthresult = await computeEarnings(firstDayLastMonth,sameDayLastMonth);
+
     console.log('###### ABOUT TO PREPARE EMAIL #####');
     console.log('Result is',result);
    
-    result.forEach(function (userResult){
+    result.forEach(function (userResult,userIndex){
     	var username = userResult.username;
     	console.log('[%s] about to send email to',username,userResult.email);
 
@@ -475,27 +493,124 @@ const sendEmails = async function() {
 			var incomeprovider = incomeproviders[i];
 			var incomesource = incomeprovider.source;
 
-			var earnings = userResult.earnings[incomesource]
+			var earnings = userResult.earnings[incomesource];
 
-			if ( earnings && earnings.days && earnings.days[yesterday.format('YYYY-MM-DD')]){
-				mailHtml += `<b>${incomesource}</b> : ${earnings.days[yesterday.format('YYYY-MM-DD')].toFixed(2)} <i>(Total for ${monthname} : ${earnings.month.toFixed(2)})</i><br>`;
+			if ( earnings && earnings.days && earnings.month && earnings.days[yesterday.format('YYYY-MM-DD')]){
+				// calculer différence
+				var earningsLastMonthArray = lastmonthresult[userIndex].earnings[incomesource];
+				var earningsLastMonth = 0;
+				var percentage = 0;
+				var percentageString = '0 %';
+				var percentageColor = 'black';
+
+				if ( earningsLastMonthArray && earningsLastMonthArray.month ){
+					earningsLastMonth = earningsLastMonthArray.month;
+					percentage = ((earnings.month - earningsLastMonth)/(earningsLastMonth)*100).toFixed(0);
+					percentageString = (percentage > 0) ? '+' + percentage + ' %': percentage + ' %';
+					percentageColor = (percentage > 0)? 'green':'red';
+				} 
+
+				// display
+				mailHtml += `<b>${incomesource}</b> : ${earnings.days[yesterday.format('YYYY-MM-DD')].toFixed(2)} - \
+					<i>Total este mes : ${earnings.month.toFixed(2)} € [<span style="color:${percentageColor}">${percentageString} (${earningsLastMonth.toFixed(2)} €)</span>]</i><br>`;
 			}
 		}
 		mailHtml += `</p>`;
 
+		var totalByDaysToday = userResult.totalByDays[yesterday.format('YYYY-MM-DD')].toFixed(2);
+		var totalByDays7daysago = 0;
+		var percentageTotalByDays = 0;
+		var percentageTotalByDaysString = '0 %';
+		var percentageTotalByDaysColor = 'black';
+		
+		if (oneweekagoresult[userIndex].totalByDays && oneweekagoresult[userIndex].totalByDays[yesterdayMinus7Days.format('YYYY-MM-DD')]){
+			totalByDays7daysago = oneweekagoresult[userIndex].totalByDays[yesterdayMinus7Days.format('YYYY-MM-DD')].toFixed(2);
+			percentageTotalByDays = (((totalByDaysToday - totalByDays7daysago)/totalByDays7daysago)*100).toFixed(0);
+			percentageTotalByDaysString = (percentageTotalByDays > 0) ? '+' + percentageTotalByDays + ' %': percentageTotalByDays + ' %';
+			percentageTotalByDaysColor = (percentageTotalByDays > 0)? 'green':'red';
+		}
+
+		var totalVisitsToday = userResult.sessions.days[yesterday.format('YYYY-MM-DD')];
+		var totalVisits7daysago = 0;
+		var percentageTotalVisits = 0;
+		var percentageTotalVisitsString = '0 %';
+		var percentageTotalVisitsColor = 'black';
+		
+		if (oneweekagoresult[userIndex].sessions.days && oneweekagoresult[userIndex].sessions.days[yesterdayMinus7Days.format('YYYY-MM-DD')]){
+			totalVisits7daysago = oneweekagoresult[userIndex].sessions.days[yesterdayMinus7Days.format('YYYY-MM-DD')];
+			percentageTotalVisits = (((totalVisitsToday - totalVisits7daysago)/totalVisits7daysago)*100).toFixed(0);
+			percentageTotalVisitsString = (percentageTotalVisits > 0) ? '+' + percentageTotalVisits + ' %': percentageTotalVisits + ' %';
+			percentageTotalVisitsColor = (percentageTotalVisits > 0)? 'green':'red';
+		}
+
+		var epvToday = userResult.earningsPerVisitorDays[yesterday.format('YYYY-MM-DD')].toFixed(2);
+		var epv7daysago = 0;
+		var percentageTotalEpv = 0;
+		var percentageTotalEpvString = '0 %';
+		var percentageTotalEpvColor = 'black';
+		
+		if (oneweekagoresult[userIndex].earningsPerVisitorDays && oneweekagoresult[userIndex].earningsPerVisitorDays[yesterdayMinus7Days.format('YYYY-MM-DD')]){
+			epv7daysago = oneweekagoresult[userIndex].earningsPerVisitorDays[yesterdayMinus7Days.format('YYYY-MM-DD')].toFixed(2);
+			percentageTotalEpv = (((epvToday - epv7daysago)/epv7daysago)*100).toFixed(0);
+			percentageTotalEpvString = (percentageTotalEpv > 0) ? '+' + percentageTotalEpv + ' %': percentageTotalEpv + ' %';
+			percentageTotalEpvColor = (percentageTotalEpv > 0)? 'green':'red';
+		}
+
+
 		mailHtml += ` \ 
 					<p>Resumén de ayer (${niceDay}) : \
 						<ul> \
-							<li>Has ganado <b>${userResult.totalByDays[yesterday.format('YYYY-MM-DD')].toFixed(2)} €</b></li> \
-			          		<li>Has recibido <b>${userResult.sessions.days[yesterday.format('YYYY-MM-DD')]} visitas</b></li> \
-			          		<li>Eso es una ganancia media de <b>${userResult.earningsPerVisitorDays[yesterday.format('YYYY-MM-DD')].toFixed(2)} centimos por visitas</b></li> \
+							<li>Ganancias : <b>${totalByDaysToday} €</b> [<i><span style="color:${percentageTotalByDaysColor}">${percentageTotalByDaysString} (${totalByDays7daysago} €)</span></i>]</li> \
+			          		<li>Visitas : <b>${totalVisitsToday}</b> [<i><span style="color:${percentageTotalVisitsColor}">${percentageTotalVisitsString} (${totalVisits7daysago})</span></i>]</li> \
+			          		<li>Ganancias por visitas : <b>${epvToday} cts€</b> [<i><span style="color:${percentageTotalEpvColor}">${percentageTotalEpvString} (${epv7daysago} cts€)</span></i>]</li> \
 			          	</ul> \
-		       		</p> \
+		       		</p>`;
+
+		var totalEarningsByMonth = userResult.totalMonth.toFixed(2);
+		var totalEarningsByMonthLastPeriod = 0;
+		var percentageTotalEarningsByMonth = 0;
+		var percentageTotalEarningsByMonthString = '0 %';
+		var percentageTotalEarningsByMonthColor = 'black';
+
+		if (lastmonthresult[userIndex].totalPeriod){
+			totalEarningsByMonthLastPeriod = lastmonthresult[userIndex].totalPeriod.toFixed(2);
+			percentageTotalEarningsByMonth = (((totalEarningsByMonth - totalEarningsByMonthLastPeriod)/totalEarningsByMonthLastPeriod)*100).toFixed(0);
+			percentageTotalEarningsByMonthString = (percentageTotalEarningsByMonth > 0) ? '+' + percentageTotalEarningsByMonth + ' %': percentageTotalEarningsByMonth + ' %';
+			percentageTotalEarningsByMonthColor = (percentageTotalEarningsByMonth > 0)? 'green':'red';
+		}
+
+		var totalVisitsByMonth = userResult.sessions.month;
+		var totalVisitsByMonthLastPeriod = 0;
+		var percentageTotalVisitsByMonth = 0;
+		var percentageTotalVisitsByMonthString = '0 %';
+		var percentageTotalVisitsByMonthColor = 'black';
+
+		if (lastmonthresult[userIndex].sessions){
+			totalVisitsByMonthLastPeriod = lastmonthresult[userIndex].sessions.period;
+			percentageTotalVisitsByMonth = (((totalVisitsByMonth - totalVisitsByMonthLastPeriod)/totalVisitsByMonthLastPeriod)*100).toFixed(0);
+			percentageTotalVisitsByMonthString = (percentageTotalVisitsByMonth > 0) ? '+' + percentageTotalVisitsByMonth + ' %': percentageTotalVisitsByMonth + ' %';
+			percentageTotalVisitsByMonthColor = (percentageTotalVisitsByMonth > 0)? 'green':'red';
+		}
+
+		var epvByMonth = userResult.earningsPerVisitorMonth.toFixed(2);
+		var epvByMonthLastPeriod = 0;
+		var percentageEpvByMonth = 0;
+		var percentageEpvByMonthString = '0 %';
+		var percentageEpvByMonthColor = 'black';
+
+		if (lastmonthresult[userIndex].earningsPerVisitorPeriod){
+			epvByMonthLastPeriod = lastmonthresult[userIndex].earningsPerVisitorPeriod.toFixed(2);
+			percentageEpvByMonth = (((epvByMonth - epvByMonthLastPeriod)/epvByMonthLastPeriod)*100).toFixed(0);
+			percentageEpvByMonthString = (percentageEpvByMonth > 0) ? '+' + percentageEpvByMonth + ' %': percentageEpvByMonth + ' %';
+			percentageEpvByMonthColor = (percentageEpvByMonth > 0)? 'green':'red';
+		}
+
+		mailHtml += ` \
 		        	<p>Resumén del mes de ${monthname} : \
 			          	<ul> \
-			          		<li>En total, ya has ganado <b>${userResult.totalMonth.toFixed(2)} €</b> en ${monthname} ... COMO LO HACES GUAP@</li> \
-			          		<li>Has tenido <b>${userResult.sessions.month}  visitas </b> durante el mes</li> \
-			          		<li>Eso es una ganancia media de <b> ${userResult.earningsPerVisitorMonth.toFixed(2)} centimos por visitas</b> este mes</li> \
+			          		<li>Ganancias : <b>${totalEarningsByMonth} €</b> [<i><span style="color:${percentageTotalEarningsByMonthColor}">${percentageTotalEarningsByMonthString} (${totalEarningsByMonthLastPeriod} €)</span></i>]</li> \
+			          		<li>Visitas : <b>${totalVisitsByMonth}</b> [<i><span style="color:${percentageTotalVisitsByMonthColor}">${percentageTotalVisitsByMonthString} (${totalVisitsByMonthLastPeriod})</span></i>]</li> \
+			          		<li>Ganancias por visitas : <b> ${epvByMonth} cts€</b> [<i><span style="color:${percentageEpvByMonthColor}">${percentageEpvByMonthString} (${epvByMonthLastPeriod} cts€)</span></i>]</li> \
 			          	</ul> \
 		          	</p> \ 
 		          	`;
@@ -553,7 +668,8 @@ var computeUserEarnings = async function(from,to,user){
 	var totalMonth = 0;
 	// earnings[incomesource].days nous donne accès aux gains pour un income source donné, pour chaque jour (cellule du tableau)
 	// earnings[incomesource].month nous donne le gain pour ce incomesource sur le mois entier (derni` ligne)
-	
+	// totalPeriod: total des revenus sur la période demandée
+	var totalPeriod = 0;
 	
 	
 	var incomeproviders = getIncomeProviders();
@@ -576,13 +692,15 @@ var computeUserEarnings = async function(from,to,user){
 				var earnedByDay = 0;
 				if (earnedByDays[day]){
 					// car earnedByDays[day] peut être vide / undefined si y a eu aucun income registered en DB pour ce jour
-					earnedByDay = earnedByDays[day]
+					earnedByDay = earnedByDays[day];
+					totalPeriod += earnedByDay;
 				}
 				if (!totalByDays[day]){
 					totalByDays[day] = earnedByDay;							
 				} else {
 					totalByDays[day] += earnedByDay;
 				}
+
 			});
 			totalMonth += result.earned.month;
 			return true;
@@ -595,6 +713,7 @@ var computeUserEarnings = async function(from,to,user){
 	// earningsPerVisitorDays : tableau avec la liste des earnings per visitor, classé par day
 	var earningsPerVisitorDays = [];//(totalToday*100 / sessionsYesterday).toFixed(2);
 	var earningsPerVisitorMonth = (totalMonth*100 / sessions.month);
+	var earningsPerVisitorPeriod = (totalPeriod * 100 / sessions.period);
 
 	daysArray.forEach(function(day){
 		if (sessions.days[day]){
@@ -612,8 +731,11 @@ var computeUserEarnings = async function(from,to,user){
 		earnings:earnings,
 		totalByDays:totalByDays,
 		totalMonth:totalMonth,
+		totalPeriod:totalPeriod,
 		earningsPerVisitorDays:earningsPerVisitorDays,
-		earningsPerVisitorMonth:earningsPerVisitorMonth
+		earningsPerVisitorMonth:earningsPerVisitorMonth,
+		earningsPerVisitorPeriod:earningsPerVisitorPeriod
+
 	};
 
 	

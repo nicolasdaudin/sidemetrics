@@ -5,11 +5,12 @@ body {
 
 table {
 	border-collapse: collapse;
+	border-radius: 25px;
 }
 
 thead { 
     background-color: #c5f7c7; 
-    color: #707070 		    
+    color: #707070;       
 } 
 
 tfoot{ 
@@ -32,10 +33,12 @@ tfoot{
 .total{
 	font-size:1.1em;
 
+
 }
 
-tr.total, td.total {
+tr.total, tr.total td {
 	border-top: 3px solid black;
+	border-bottom: 0px; 
 }
 
 .oneweekago {
@@ -55,25 +58,30 @@ td:first-child {
 	text-align:left;
 }
 
-td:nth-last-child(3) {
+td:nth-child(10) {
 	font-weight:bold;
+	font-size:1.1em;
 }
 
-td:nth-last-child(2) {
-	width:2px;
-	padding:2px;
-	background-color:black;
-}
 
-td:last-child{
+td:nth-child(9){
+	border-right: 3px solid orange;
+	border-left: 3px solid orange;
 	font-weight:bold;
+	
 }
 
-td.positive {
+
+td:nth-child(11){
+	font-size:0.9em;
+	font-style:italic;
+}
+
+.positive {
 	color:#00994d;
 }
 
-td.negative{
+.negative{
 	color:#f08080;
 }
 
