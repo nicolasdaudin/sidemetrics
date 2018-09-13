@@ -72,22 +72,24 @@ var Daisycon = mongoose.model('DaisyconCredentials',daisyconCredentialsSchema);
 var GamblingAffiliation = mongoose.model('GamblingAffiliationCredentials',gamblingAffiliationCredentialsSchema);
 var Awin = mongoose.model('AwinCredentials',awinCredentialsSchema);
 
-var userHasCredentials = function(userid,username, incomesource, credentialsmodel,callback){
-	credentialsmodel.findOne({user_id : userid},function (err,user){
-		if (err) {
-			console.log('userHasCredentials [%s,%s] - There was an error',username,incomesource, err);
-			callback(err,false);
-		} else if (user){
-			// that user has credentials for that income source
-			//console.log('userHasCredentials - user ',user)
-			console.log('[%s] userHasCredentials for %s - TRUE',username,incomesource);
-			callback(null,true);
-		} else {
-			// that user has no credentials for that income source
-			console.log('[%s] userHasCredentials for %s - FALSE',username,incomesource);
-			callback(false);
-		}
-	});
+var userHasCredentials = async function(userid,username, incomesource, credentialsmodel){
+	try {
+        var user = await credentialsmodel.findOne({user_id : userid}).exec();
+        if (user){
+            // that user has credentials for that income source
+            //console.log('userHasCredentials - user ',user)
+            console.log('[%s#%s] userHasCredentials - TRUE',username,incomesource);
+            return true;
+        } else {
+            // that user has no credentials for that income source
+            console.log('[%s#%s] userHasCredentials - FALSE',username,incomesource);
+            return false;
+        }
+
+    } catch (err){		
+		console.log('[%s#%s] userHasCredentials - There was an error',username,incomesource, err);
+		throw err;
+	}
 };
 
 module.exports = {Adsense,Analytics,Tradetracker,Moolineo,Loonea,Thinkaction,Dgmax,Daisycon,GamblingAffiliation,Awin,userHasCredentials};

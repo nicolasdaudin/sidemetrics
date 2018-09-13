@@ -1,0 +1,199 @@
+-function prettyDate(dateString){
+	-var date = new Date(dateString);
+	-var dayNames = ["Domingo","Lunes","Martes","Miercoles","Jueves","Viernes","Sabado"];
+	-var dayofweek = dayNames[date.getDay()];
+	-var d = date.getDate(dateString);
+	-var shortMonthNames = [ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" ];
+	-var m = shortMonthNames[date.getMonth()];	
+	-return dayofweek + ' ' +d;
+-}
+-function get7daysago(dateString){
+	-var ago = moment(dateString);
+	-return ago.subtract(7,'days').format('YYYY-MM-DD');
+-}
+-function prettyMonth(dateString){
+	-var date = new Date(dateString);
+	-var longMonthNames = [ "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre" ];
+	-var m = longMonthNames[date.getMonth()];
+	-return ''+ m;	
+-} 
+- var incomesource = ['Adsense','Tradetracker','Moolineo','Loonea','Thinkaction','DGMax','Daisycon','GamblingAffiliation','Awin']
+html
+	head
+		style
+			include style.css
+		body
+			h1 DASHBOARD (v2) - Ganancias ultimos 7 dias
+			each user,userindex in result
+				h3 Ganancias para #{user.username}
+
+				table
+					// DATES
+					thead
+						tr
+							// PREMIERE COLONNE
+							td Plataforma
+							// CHAQUE JOUR
+							each day,index in user.days
+								if index === user.days.length - 1
+									td Ayer
+								else
+									td #{prettyDate(day)}
+							td
+							// DERNIÈRE COLONNE
+							td TOTAL #{prettyMonth(user.days[user.days.length-1])}
+					
+					// CHAQUE SOURCE DE REVENUS
+					each source in incomesource	
+						tr
+							td #{source}
+							each day,index in user.days
+								// td #{user.earnings[source].days[day]}
+								if user.earnings[source] && user.earnings[source].days[day]
+									td #{user.earnings[source].days[day].toFixed(2)} €
+								else 
+									td 0 €
+							td
+							// TOTAL SUR LE MOISPOUR CETTE SOURCE DE REVENU
+							if user.earnings[source] && user.earnings[source].month
+								td #{user.earnings[source].month.toFixed(2)} €
+							else 
+								td 0 €
+
+					// NUMERO DE VISITAS
+					tr(class='visits total')
+						td VISITAS
+						each day,index in user.days
+							if user.sessions.days[day]
+								td #{user.sessions.days[day]}
+							else 
+								td 0
+						td
+						// TOTAL NUMERO DE VISITAS
+						if user.sessions.month
+							td #{user.sessions.month}
+						else 
+							td 0
+					tr(class='visits oneweekago')
+						td % diferencia 7 dias
+						each day,index in user.days
+							- var dayLastWeek = get7daysago(day)
+							- var visitsThisWeek = user.sessions.days[day]
+							- var visitsLastWeek = oneweekago[userindex].sessions.days[dayLastWeek]
+							if (visitsThisWeek && visitsLastWeek)
+								- var percent = ((visitsThisWeek - visitsLastWeek)/visitsThisWeek)*100
+								- var percentclass = 'positive'
+								- var percentstring = '' + percent.toFixed(0);
+								- if (percent < 0) {
+								-	percentclass = 'negative'
+								- } else {
+								-	percentstring = '+' + percentstring;
+								-}
+								td(class=''+percentclass) #{percentstring} % 
+									br
+									.
+										(#{visitsLastWeek})
+							else
+								td 0
+						td
+						td 0
+
+					// GAINS PAR VISITEURS
+					tr(class='epv total')
+						td GANANCIAS POR VISITAS
+						each day,index in user.days
+							if user.earningsPerVisitorDays[day]
+								td #{user.earningsPerVisitorDays[day].toFixed(2)} €
+							else
+								td 0 €
+						td
+						// MEDIA GAINS PAR VISITEURS SUR LE MOIS
+						if user.earningsPerVisitorMonth
+							td #{user.earningsPerVisitorMonth.toFixed(2)} €
+						else
+							td 0 €
+
+					tr(class='epv oneweekago')
+						td % diferencia 7 dias
+						each day,index in user.days
+							- var dayLastWeek = get7daysago(day)
+							- var epvThisWeek = user.earningsPerVisitorDays[day]
+							- var epvLastWeek = oneweekago[userindex].earningsPerVisitorDays[dayLastWeek]
+							if (epvThisWeek && epvLastWeek)
+								- var percent = ((epvThisWeek - epvLastWeek)/epvThisWeek)*100
+								- var percentclass = 'positive'
+								- var percentstring = '' + percent.toFixed(0);
+								- if (percent < 0) {
+								-	percentclass = 'negative'
+								- } else {
+								-	percentstring = '+' + percentstring;
+								-}
+								td(class=''+percentclass) #{percentstring} % 
+									br
+									.
+										(#{epvLastWeek.toFixed(2)}) €
+							else
+								td 0
+						td
+						td 0
+
+
+					// SOMME DES GAINS
+					tfoot
+						tr(class='total')
+							td TOTAL GANANCIAS
+							each day,index in user.days
+								if user.totalByDays[day]
+									td #{user.totalByDays[day].toFixed(2)} €
+								else
+									td 0 €
+							td
+							// SOMME DES GAINS SUR LE MOIS
+							if user.totalMonth
+								td #{user.totalMonth.toFixed(2)} €
+							else
+								td 0 €
+
+						tr(class='oneweekago')
+							td % diferencia 7 dias
+							each day,index in user.days
+								- var dayLastWeek = get7daysago(day)
+								- var earningsThisWeek = user.totalByDays[day]
+								- var earningsLastWeek = oneweekago[userindex].totalByDays[dayLastWeek]
+								if (earningsThisWeek && earningsLastWeek)
+									- var percent = ((earningsThisWeek - earningsLastWeek)/earningsThisWeek)*100
+									- var percentclass = 'positive'
+									- var percentstring = '' + percent.toFixed(0);
+									- if (percent < 0) {
+									-	percentclass = 'negative'
+									- } else {
+									-	percentstring = '+' + percentstring;
+									-}
+									td(class=''+percentclass) #{percentstring} % 
+										br
+										.
+											(#{earningsLastWeek.toFixed(2)} €)
+								else
+									td 0
+							td
+							td 0
+
+					
+
+			//	
+			//	each seqiter in resultSeqIter
+			//		tr
+			//			td(class='listofsites')
+			//				each site,position in seqiter.sitesSequence
+			//					br
+			//					. 
+			//						#{position + 1} - #{site}
+			//					
+			//			td #{seqiter.max}
+			//			td #{seqiter.average}
+			//			td #{seqiter.min} 
+			//			td #{seqiter.nb_below_0} (#{seqiter.percent_below_0} %) 
+			//			td #{seqiter.nb_above_200} (#{seqiter.percent_above_200} %) 
+			//			td(style={background:'#c5f7c7'}) #{seqiter.nb_above_300} (#{seqiter.percent_above_300} %) 
+			//			td #{seqiter.nb_above_350} (#{seqiter.percent_above_350} %) 	
+			

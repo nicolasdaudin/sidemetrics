@@ -80,30 +80,30 @@ var Daisycon = mongoose.model('DaisyconIncome',daisyconIncomeSchema);
 var GamblingAffiliation = mongoose.model('GamblingAffiliationIncome',gamblingAffiliationIncomeSchema);
 var Awin = mongoose.model('AwinIncome',awinIncomeSchema);
 
-var getDayEarnings = function(user_id,username, begin,end, incomesource, incomemodel,callback){
+var getDayEarnings = async function(user_id,username, begin,end, incomesource, incomemodel){
   
 	var beginDate = begin.format('YYYY-MM-DD');
 	var endDate = end.format('YYYY-MM-DD');
 	//console.log('Income.getDayEarnings - args: username[%s],begin[%s],end[%s],incomesource[%s]',username,beginDate,endDate,incomesource);
-	incomemodel.find({user_id : user_id, date: {$gte : new Date(beginDate), $lte:new Date(endDate)}},function (err,result){
-      // result is of type 'model'. Don't ask why, it's the way it appears when we debug...
-      	if (err) {
-      		console.log('[%s] ERROR for getDayEarnings between %s and %s, for source %s :',username,beginDate,endDate,incomesource, err);
-      		callback(err,false);
-      	} else {
-      		console.log('[%s] SUCCESSFULLY finished getDayEarnings between %s and %s, for source %s',username,beginDate,endDate,incomesource);
-      		callback(null,result);
-      	} 
-  	});
+	try {
+    var result = await incomemodel.find({user_id : user_id, date: {$gte : new Date(beginDate), $lte:new Date(endDate)}}).exec(); 
+    // result is of type 'model'. Don't ask why, it's the way it appears when we debug...
+    console.log('[%s#%s] SUCCESSFULLY finished incomemodel.find for getDayEarnings between %s and %s',username,incomesource,beginDate,endDate);
+    return result;
+  } catch (err) {    
+    console.log('[%s#%s] ERROR for incomemodel.find for getDayEarnings between %s and %s',username,incomesource,beginDate,endDate, err);
+    throw err;
+  }
 };
 
-var getMonthEarnings = function(user_id,username, day, incomesource, incomemodel,callback){
+var getMonthEarnings = async function(user_id,username, day, incomesource, incomemodel){
   var monthNumber = day.month() + 1;
   var yearNumber = day.year();
   //console.log('[%s] Income.getMonthEarnings - args: user_id[%s],username[%s],month[%s],incomesource[%s]',username,user_id,username,monthNumber,incomesource);
   //console.log('year',yearNumber);
 
-  incomemodel.aggregate([
+  try {
+    var result = await incomemodel.aggregate([
       // $project permet de créer un nouveau champ juste pour cet aggregate, appelé month. Appliqué à tous les documents
       {$project:{user_id:1,date:1,income:1,month : {$month : "$date"},year : {$year : "$date"}}},
       // $match va donc matcher que les documents de user_id pour le mois 'month' créé auparavant
@@ -111,24 +111,18 @@ var getMonthEarnings = function(user_id,username, day, incomesource, incomemodel
       // $group: obligé de mettre un _id car permet de grouper sur ce champ. 
       // Peut être utilisé plus tard pour faire l'aggregate sur tous les users ou sur tous les mois, par exemple pour envoyer le total de chaque mois passé
       {$group: { _id: "$user_id", total: {$sum: "$income"}}}
-    ],
-    function(err,result){
-      //console.log("[%s] Income.getMonthEarnings - aggreggate - err: %s - result: %s ",username,err,JSON.stringify(result));
-      
-      if (err){
-        console.log("Error",err);
-        callback(err,null);
-      } 
+    ]).exec();
 
-      console.log("[%s] income.js - Success with getMonthEearnings. Result: ",username, result);
-      if (result && result[0]){
-        callback(null,result[0].total);
-      } else {
-        callback(null,0);
-      }
+    console.log("[%s#%s] SUCCESSFULLY finished incomemodel.aggregate for getMonthEarnings for day %s : ",username, incomesource,day,result);
+    if (result && result[0]){
+      return result[0].total;
+    } else {
+      return 0;
     }
-  );
-  //console.log("######### getMonthEarnings END");
+  } catch (err){
+    console.log("[%s#%s] ERROR for incomemodel.aggregate for getMonthEarnings for day %s :",username,incomesource,day, err);
+    throw err;
+  }
 };
 
 

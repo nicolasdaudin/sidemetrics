@@ -25,7 +25,7 @@ var getDaySessions = function(user_id,username, begin,end, callback){
       		console.log('[%s] ERROR for getDaySessions between %s and %s  :',username,beginDate,endDate, err);
       		callback(err,false);
       	} else {
-      		console.log('[%s] getDaySessions between %s and %s. Number of session is',username,beginDate,endDate,result);
+      		//console.log('[%s] getDaySessions between %s and %s. Number of session is',username,beginDate,endDate,result);
       		callback(null,result);
       	} 
   	});

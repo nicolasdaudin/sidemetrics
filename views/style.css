@@ -1,0 +1,88 @@
+
+body { 
+	font-family : Helvetica,Arial,sans-serif; 
+}
+
+table {
+	border-collapse: collapse;
+}
+
+thead { 
+    background-color: #c5f7c7; 
+    color: #707070 		    
+} 
+
+tfoot{ 
+    background-color: #ffde84; 
+    color: #707070 
+} 
+
+
+.visits { 
+	background-color: #ffde84; 
+    color: #707070 
+} 
+
+.epv { 
+	background-color: #f7e3ad; 
+    color: #707070 
+} 
+
+
+.total{
+	font-size:1.1em;
+
+}
+
+tr.total, td.total {
+	border-top: 3px solid black;
+}
+
+.oneweekago {
+	font-size:0.9em;
+	font-style:italic;
+}
+
+th, td { 
+    padding: 5px 15px; 
+    text-align: center; 
+    border-bottom: 1px solid #ddd; 
+    font-weight : normal 
+} 
+
+td:first-child {
+	font-weight:bold;
+	text-align:left;
+}
+
+td:nth-last-child(3) {
+	font-weight:bold;
+}
+
+td:nth-last-child(2) {
+	width:2px;
+	padding:2px;
+	background-color:black;
+}
+
+td:last-child{
+	font-weight:bold;
+}
+
+td.positive {
+	color:#00994d;
+}
+
+td.negative{
+	color:#f08080;
+}
+
+
+
+.yesterday { 
+	color: red 
+} 
+
+.month { 
+	font-weight: bold  
+} 
