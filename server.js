@@ -1106,7 +1106,7 @@ var taskSendEmails = cron.schedule('45 4 * * *', sendEmails, true);
 /** DATABASE and FINAL SERVER INIT **/ 
 var database_url = process.env.DATABASE_URL;
 //mongoose.connect(database_url,{ config: { autoIndex: false } });
-mongoose.connect(database_url);
+mongoose.connect(database_url,{ useNewUrlParser: true });
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', function() {
