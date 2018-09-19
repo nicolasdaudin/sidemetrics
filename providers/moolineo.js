@@ -9,6 +9,7 @@ var request = require("request");
 
 var User = require('../models/user');
 var Income = require('../models/income');
+var IncomeByDay = require('../models/incomebyday');
 var Credentials = require('../models/credentials');
 
 
@@ -113,7 +114,7 @@ var getEarnings = function(user_id,username,day,after){
 		function saveMoolineoInDb(result,callback){
 			console.log('##### [%s] saveMoolineoInDb',username);
 			//MoolineoIncome = new Income.Moolineo( { user_id: user_id, date: moolineoApiDay, income : result});
-			Income.Moolineo.findOneAndUpdate({ user_id: user_id, date: moolineoApiDay},{income : result},{upsert:true},function(err){
+			IncomeByDay.IncomeByDay.findOneAndUpdate({ user_id: user_id, date: moolineoApiDay,source:'moolineo'},{income : result},{upsert:true},function(err){
 			if (err){
 					console.log('[%s] Error while saving Moolineo earnings (%s,%s) into DB. Error : ',username,moolineoApiDay,result,err.errmsg);
 					callback(null,result);
@@ -136,31 +137,5 @@ var getEarnings = function(user_id,username,day,after){
 	});
 };
 
-/*
-var getMonthEarnings = function(user_id,username,day,after){
-	console.log("[%s] #### getMonthEarnings for Moolineo",username);
-	var monthNumber = day.month() + 1;
-	//console.log("Month [%s] with number [%s]",day.format('MMMM'),monthNumber);
-	Income.Moolineo.aggregate([
-			// $project permet de créer un nouveau champ juste pour cet aggregate, appelé month. Appliqué à tous les documents
-			{$project:{user_id:1,date:1,income:1,month : {$month : "$date"}}},
-			// $match va donc matcher que les documents de user_id pour le mois 'month' créé auparavant
-			{$match: { user_id : user_id, month: monthNumber}},
-			// $group: obligé de mettre un _id car permet de grouper sur ce champ. 
-			// Peut être utilisé plus tard pour faire l'aggregate sur tous les users ou sur tous les mois, par exemple pour envoyer le total de chaque mois passé
-			{$group: { _id: "$user_id", total: {$sum: "$income"}}}
-		],
-		function(err,result){
-			if (err){
-				console.log("Error",err);
-				after(err,null);
-			} 
-			//console.log("Success with getMonthEearnings Moolineo. Result: ",result);
-			after(null,result[0].total);
-		}
-	);
-	//console.log("######### getMonthEarnings END");
-};
-*/
 
 module.exports = {router ,getEarnings}//, getMonthEarnings};

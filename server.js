@@ -21,6 +21,7 @@ var gamblingaffiliation = require('./providers/gamblingaffiliation');
 var awin = require('./providers/awin');
 
 var Income = require('./models/income');
+var IncomeByDay = require('./models/incomebyday');
 var AnalyticsModel = require('./models/analytics');
 var Credentials = require('./models/credentials');
 
@@ -35,7 +36,7 @@ var getIncomeProviders = function (){
 		{source:'Thinkaction',dbname:'thinkaction',provider:thinkaction,credentials_model:Credentials.Thinkaction,income_model:Income.Thinkaction},
 		{source:'DGMax',dbname:'dgmax',provider:dgmax,credentials_model:Credentials.Dgmax,income_model:Income.Dgmax},
 		{source:'Daisycon',dbname:'daisycon',provider:daisycon,credentials_model:Credentials.Daisycon,income_model:Income.Daisycon},
-		{source:'GamblingAffiliation',dbname:'gambling',provider:gamblingaffiliation,credentials_model:Credentials.GamblingAffiliation,income_model:Income.GamblingAffiliation},
+		{source:'GamblingAffiliation',dbname:'gamblingaffiliation',provider:gamblingaffiliation,credentials_model:Credentials.GamblingAffiliation,income_model:Income.GamblingAffiliation},
 		{source:'Awin',dbname:'awin',provider:awin,credentials_model:Credentials.Awin,income_model:Income.Awin}
 	]
 };
@@ -90,7 +91,12 @@ app.get('/', function (req, res) {
 		"<li><a href='/dashboard'>DASHBOARD (NEW)</a></li>"+  
 		"<li><a href='/cron/fetchEarnings'>CRON fetchEarnings</a></li>"+  
 		"<li><a href='/cron/fetchEarningsToday'>CRON fetchEarningsToday</a></li>"+ 		
-		"<li><a href='/cron/sendEmails'>CRON sendEmails (NEW)</a></li>"+  
+		"<li><a href='/cron/sendEmails'>CRON sendEmails (NEW)</a></li>"+ 
+		"<li><a href='/dbscript'>Transfer from old to new DB</a></li>"+  
+		"<li><a href='/findhighestincomeday'>Day with highest income</a></li>"+ 
+		"<li><a href='/findhighestincomemonth'>Month with highest income</a></li>"+  
+		"<li><a href='/finddaywithmostvisits'>Day with most visits</a></li>"+  
+		"<li><a href='/findorderhighestincomeday'>Classement de ce jour par rapport aux autres jours</a></li>"+  
   		"</ul>" +  		
   		"<h2>TESTING</h2>" + 
   		"<ul>"+  		
@@ -205,6 +211,142 @@ app.get('/cron/sendEmailsOld',function(req,res){
 	res.send('ONGOING, check logs');
 });
 
+app.get('/findhighestincomemonth', function(req,res){
+	console.log("looking for highest income month");
+
+	User.findAllUsers(function(err,users){
+    	if (err) { 
+    		console.log("Error while retrieving all users : ",err);
+    	} else {
+
+    		users.forEach(async function(user){
+    			var username = user.username;
+    			var userid = user._id;
+    			var result = await IncomeByDay.findMonthWithHighestIncome(userid,username);
+    		});
+    	}
+    });
+
+
+
+	res.send('ONGOING, check logs');
+
+});
+
+
+app.get('/finddaywithmostvisits', function(req,res){
+	console.log("looking for stuff");
+
+	User.findAllUsers(function(err,users){
+    	if (err) { 
+    		console.log("Error while retrieving all users : ",err);
+    	} else {
+
+    		users.forEach(async function(user){
+    			var username = user.username;
+    			var userid = user._id;
+    			var result = await AnalyticsModel.findDayWithMostVisits(userid,username);
+    		});
+    	}
+    });
+
+	res.send('ONGOING, check logs');
+
+});
+
+app.get('/findorderhighestincomeday', function(req,res){
+	console.log("looking for highest income day");
+
+	var yesterday = moment().subtract(1,'days');
+
+
+	User.findAllUsers(function(err,users){
+    	if (err) { 
+    		console.log("Error while retrieving all users : ",err);
+    	} else {
+
+    		users.forEach(async function(user){
+    			var username = user.username;
+    			var userid = user._id;
+    			var days = await IncomeByDay.orderDaysByHighestIncome(userid,username);
+    			var positionIncome = 0;
+    			days.forEach(function(day,index){
+    				//console.log('day %s - date %s - income %s',JSON.stringify(day),day._id.date,day.total);
+    				if (moment(day._id.date).isSame(yesterday,'day')){
+    					console.log(`[${username}] Aujourd'hui (${yesterday.format('YYYY-MM-DD')}) c'est le ${index+1}º meilleur jour en terme de gains (${day.total})`);
+    					positionIncome = index + 1;
+    				}
+    			});
+    		});
+    	}
+    });
+
+
+
+	res.send('ONGOING, check logs');
+
+
+});
+
+
+app.get('/findhighestincomeday', function(req,res){
+	console.log("looking for highest income day");
+
+	User.findAllUsers(function(err,users){
+    	if (err) { 
+    		console.log("Error while retrieving all users : ",err);
+    	} else {
+
+    		users.forEach(async function(user){
+    			var username = user.username;
+    			var userid = user._id;
+    			var result = await IncomeByDay.findDayWithHighestIncome(userid,username);
+    		});
+    	}
+    });
+
+
+
+	res.send('ONGOING, check logs');
+
+
+});
+
+app.get('/dbscript',function(req,res){
+	console.log("MOVING OLD DB TO NEW DB");
+	
+
+	var incomeproviders = getIncomeProviders();
+
+	incomeproviders.forEach(function (incomeprovider){
+
+		incomeprovider.income_model.find({},function(err,incomes){
+			console.log("%s - got %s",incomeprovider.dbname,incomes.length);
+			incomes.forEach(function (income){
+				IncomeByDay.IncomeByDay.findOneAndUpdate(
+					{
+						user_id:income.user_id,
+						date:income.date,
+						source:incomeprovider.dbname
+					},
+					{
+						income:income.income
+					}, {upsert:true},function(err){
+						if (err){
+							console.log('%s - dbscript - Error while saving %s earnings (%s,%s) into DB. Error : ',incomeprovider.dbname,incomeprovider.dbname,income.date,income.income,err.errmsg);							
+						} else {
+							console.log('%s - dbscript - Saved %s earnings in DB:',incomeprovider.dbname,incomeprovider.dbname,income.date,income.income);
+						}
+					});
+
+			});
+		});
+
+	});
+
+
+	res.send('ONGOING, check logs');
+});
 const fetchEarnings = function(isToday){
 
 	// CRON STARTED
@@ -212,7 +354,6 @@ const fetchEarnings = function(isToday){
     console.log('CRON FETCH EARNINGS - BEGIN at',cronBegin);
 
     var day = moment().subtract(1,'days'); 
-    var niceDay = day.format('dddd DD MMMM YYYY');
     var monthname = day.format('MMMM');
 
     if (isToday) {
@@ -263,32 +404,6 @@ const fetchEarnings = function(isToday){
 						}							
 						//console.log("[%s#%s] CRON FETCH EARNINGS - After call getEarnings",username,incomesource);				
 					}
-					/*
-					Credentials.userHasCredentials(user._id,username,incomesource,incomeprovider.credentials_model,function(err,hasCredentials){
-						if (!hasCredentials){
-							callbackSmallEach();
-						} else {
-							
-							incomeprovider.provider.getEarnings(user._id,username,day,function(err,result){
-								if (err){
-									console.error("[%s] [%s] CRON FETCH EARNINGS - Back from getEarnings with error: ",username,incomesource,err);
-									callbackSmallEach();
-								} else {
-									//var dayTotal = result.totals[1];
-									//var dayTotal = result;
-									//console.log("[%s] CRON FETCH EARNINGS - Back from getEarnings for day %s for %s with earnings: ",username,day,incomesource,dayTotal);					
-									callbackSmallEach();
-
-								}	
-							});
-						}
-
-						
-					});
-
-
-
-					}*/
 				}, function afterAllProviders(){
 					callbackEach();
 				});
@@ -374,7 +489,7 @@ var getUserEarningsByIncome = async function(user,begin,end,incomeprovider){
 		// recupère les daily earnings pour cet incomesource entre les dates 'begin' et les dates 'end'
 		
 		try {
-			var result = await Income.getDayEarnings(user._id,username,begin,end,incomesource,incomeprovider.income_model);
+			var result = await IncomeByDay.getDayEarnings(user._id,username,begin,end,incomeprovider.dbname);
 
 			console.log("[%s#%s] server.js - Back from getDayEarnings between %s and %s",username,incomesource,begin,end);		
 
@@ -391,7 +506,7 @@ var getUserEarningsByIncome = async function(user,begin,end,incomeprovider){
 
 		// calcule le total pour le mois en cours
 		try {
-			var result = await Income.getMonthEarnings(user._id,username,end,incomesource,incomeprovider.income_model);
+			var result = await IncomeByDay.getMonthEarnings(user._id,username,end,incomeprovider.dbname);
 
 			console.log("[%s#%s] server.js - Back from getMonthEarnings for day %s with earnings: ",username,incomesource,end,result);		
 			earnings.month = new Number(result);
@@ -408,13 +523,6 @@ var getUserEarningsByIncome = async function(user,begin,end,incomeprovider){
 app.get('/dashboard',async function(req,res){
 
 	console.log('ABOUT TO SHOW DASHBOARD NEW FUCK YEAH !!!!!');
-
-	console.log('BUT FIRST, LETS FETCH EARNINGS FOR TODAY');
-	//fetchEarnings(true);
-	// TODO: peut-être rajouter un cron qui s'execute toutes les heures pour actualiser les earnings de TODAY ?!?!?!?!?!?!?!?!?!
-	// HUM DANGEREUX CAR ça veut dire executer le scraper et les APIS 24 fois par jour... au lieu de 2 ou 3 fois si c'est que lié à l'affichage du dashboard - donc à la demande
-	// MAIS D'UN AUTRE COTE, si c'est à la demande, on sait que ça prend 60 secondes pour tout recupérer (comme le fetchEarnings normal)... donc... !??
-	// ET SINON faut de toute façon asyncer ou algo, parce que sinon.... les deux vont s'executer en parallèle et y aura rien dans HOY....
 
 	var today = moment();
 	var yesterday = moment().subtract(1,'days');
@@ -439,16 +547,59 @@ app.get('/dashboard',async function(req,res){
     var oneweekagoresult = await computeEarnings(beginMinus7Days,yesterdayMinus7Days);
     var lastmonthresult = await computeEarnings(firstDayLastMonth,sameDayLastMonth);
 
-    console.log('###### ABOUT TO DISPLAY DASHBOARD #####');
-    //console.log('Result is',result);
-    console.log('oneweekago is',oneweekagoresult);
-    console.log('lastmonth is',lastmonthresult);
-    res.render('dashboard', { 
-				result : result,
-				oneweekago : oneweekagoresult,
-				lastmonth: lastmonthresult,
-				sameDayLastMonth : sameDayLastMonth
+    console.log('BEFORE CALLING EXTRAMETRICS');
+   
+    const usersAsync = util.promisify(User.findAllUsers);
+	var users;
+	try {
+		users = await usersAsync();
+	} catch (err){
+		console.log("Error while retrieving all users : ",err);
+	}
+
+	var userPromises = [];
+
+	users.forEach(function(user){
+		const userPromise = computeUserExtraMetrics(user);
+		userPromises.push(userPromise); 
 	});
+	var userextrametrics = await Promise.all(userPromises);
+
+	var highestIncomeMonthByUser = [];
+	var highestIncomeDayByUser = [];
+	var positionIncomeByUser = [];
+	var positionVisitsByUser = [];
+	var highestVisitsDayByUser = [];
+
+	userextrametrics.forEach(function (extrametrics){
+		var username = extrametrics.username;
+		highestIncomeMonthByUser[username] = extrametrics.highestIncomeMonthByUser;
+		highestIncomeDayByUser[username] = extrametrics.highestIncomeDayByUser;
+		positionIncomeByUser[username] = extrametrics.positionIncomeByUser;
+		positionVisitsByUser[username] = extrametrics.positionVisitsByUser;
+		highestVisitsDayByUser[username] = extrametrics.highestVisitsDayByUser;
+	});
+
+	console.log('AFTER CALLING EXTRAMETRICS');
+
+	console.log('###### ABOUT TO DISPLAY DASHBOARD #####');
+    //console.log('Result is',result);
+    //console.log('oneweekago is',oneweekagoresult);
+    //console.log('lastmonth is',lastmonthresult);
+    res.render('dashboard', { 
+		result : result,
+		oneweekago : oneweekagoresult,
+		lastmonth: lastmonthresult,
+		sameDayLastMonth : sameDayLastMonth,
+		highestIncomeMonthByUser : highestIncomeMonthByUser,
+		highestIncomeDayByUser: highestIncomeDayByUser,
+		positionIncomeByUser: positionIncomeByUser,
+		positionVisitsByUser: positionVisitsByUser,
+		highestVisitsDayByUser: highestVisitsDayByUser
+	});
+	
+
+    
 });
 
 
@@ -459,11 +610,13 @@ const sendEmails = async function() {
 
 
     var yesterday = moment().subtract(1,'days'); 
-    var niceDay = yesterday.format('dddd DD MMMM YYYY');
+    var niceYesterday = yesterday.format('dddd DD MMMM YYYY');
     var monthname = yesterday.format('MMMM');
 
 	var yesterdayMinus7Days = moment(yesterday).subtract(7,'days');
+	var niceYesterdayMinus7Days = 'el ' + yesterdayMinus7Days.format('dddd') + ' pasado';
 	var sameDayLastMonth = moment(yesterday).subtract(1,'months');
+	var niceDayLastMonth = sameDayLastMonth.format('dddd DD MMMM');
     var firstDayLastMonth = moment(sameDayLastMonth).startOf('month');
 
 
@@ -476,6 +629,42 @@ const sendEmails = async function() {
     var oneweekagoresult = await computeEarnings(yesterdayMinus7Days,yesterdayMinus7Days);
     var lastmonthresult = await computeEarnings(firstDayLastMonth,sameDayLastMonth);
 
+	console.log('BEFORE CALLING EXTRAMETRICS');
+   
+    const usersAsync = util.promisify(User.findAllUsers);
+	var users;
+	try {
+		users = await usersAsync();
+	} catch (err){
+		console.log("Error while retrieving all users : ",err);
+	}
+
+	var userPromises = [];
+
+	users.forEach(function(user){
+		const userPromise = computeUserExtraMetrics(user);
+		userPromises.push(userPromise); 
+	});
+	var userextrametrics = await Promise.all(userPromises);
+
+	var highestIncomeMonthByUser = [];
+	var highestIncomeDayByUser = [];
+	var positionIncomeByUser = [];
+	var positionVisitsByUser = [];
+	var highestVisitsDayByUser = [];
+
+	userextrametrics.forEach(function (extrametrics){
+		var username = extrametrics.username;
+		highestIncomeMonthByUser[username] = extrametrics.highestIncomeMonthByUser;
+		highestIncomeDayByUser[username] = extrametrics.highestIncomeDayByUser;
+		positionIncomeByUser[username] = extrametrics.positionIncomeByUser;
+		positionVisitsByUser[username] = extrametrics.positionVisitsByUser;
+		highestVisitsDayByUser[username] = extrametrics.highestVisitsDayByUser;
+	});
+
+	console.log('AFTER CALLING EXTRAMETRICS');
+
+
     console.log('###### ABOUT TO PREPARE EMAIL #####');
     console.log('Result is',result);
    
@@ -486,9 +675,9 @@ const sendEmails = async function() {
     	// contenu HTML
     	var mailHtml = '';
 
-    	mailHtml += `Querid@ ${username}, aquí va el detalle de lo que has ganado ayer ${niceDay}.`;
+    	mailHtml += `Querid@ ${username}, aquí va el detalle de lo que has ganado ayer ${niceYesterday} [<i>y la comparativa con el mes pasado hasta el ${niceDayLastMonth}</i>] `;
 
-		mailHtml += `<p>`;
+		mailHtml += `<p><h3>Detalles ayer</h3> `;
     	for (var i = 0; i < incomeproviders.length; i++) {			
 			var incomeprovider = incomeproviders[i];
 			var incomesource = incomeprovider.source;
@@ -498,21 +687,26 @@ const sendEmails = async function() {
 			if ( earnings && earnings.days && earnings.month && earnings.days[yesterday.format('YYYY-MM-DD')]){
 				// calculer différence
 				var earningsLastMonthArray = lastmonthresult[userIndex].earnings[incomesource];
-				var earningsLastMonth = 0;
+				var earningsLastPeriod = 0;
 				var percentage = 0;
 				var percentageString = '0 %';
 				var percentageColor = 'black';
 
 				if ( earningsLastMonthArray && earningsLastMonthArray.month ){
-					earningsLastMonth = earningsLastMonthArray.month;
-					percentage = ((earnings.month - earningsLastMonth)/(earningsLastMonth)*100).toFixed(0);
+					earningsLastPeriod = earningsLastMonthArray.period;
+					percentage = ((earnings.month - earningsLastPeriod)/(earningsLastPeriod)*100).toFixed(0);
 					percentageString = (percentage > 0) ? '+' + percentage + ' %': percentage + ' %';
 					percentageColor = (percentage > 0)? 'green':'red';
 				} 
 
 				// display
 				mailHtml += `<b>${incomesource}</b> : ${earnings.days[yesterday.format('YYYY-MM-DD')].toFixed(2)} - \
-					<i>Total este mes : ${earnings.month.toFixed(2)} € [<span style="color:${percentageColor}">${percentageString} (${earningsLastMonth.toFixed(2)} €)</span>]</i><br>`;
+					<i>Total este mes : ${earnings.month.toFixed(2)} € `;
+				if (earningsLastPeriod > 0) {
+					mailHtml += `[<span style="color:${percentageColor}">${percentageString} (${earningsLastPeriod.toFixed(2)} €)</span>]</i><br>`;
+				} else {
+					mailHtml += `[<span>0 € el mes pasado</span>]</i><br>`;
+				}
 			}
 		}
 		mailHtml += `</p>`;
@@ -556,14 +750,31 @@ const sendEmails = async function() {
 			percentageTotalEpvColor = (percentageTotalEpv > 0)? 'green':'red';
 		}
 
+		var positionIncome = positionIncomeByUser[username].position;
+		var positionIncomeColor = '';
+		if (positionIncome < 11) {
+			positionIncomeColor = 'green';
+		}
+		var positionVisits = positionVisitsByUser[username].position;
+		var positionVisitsColor = '';
+		if (positionVisits < 11) {
+			positionVisitsColor = 'green';
+		}
 
 		mailHtml += ` \ 
-					<p>Resumén de ayer (${niceDay}) : \
-						<ul> \
-							<li>Ganancias : <b>${totalByDaysToday} €</b> [<i><span style="color:${percentageTotalByDaysColor}">${percentageTotalByDaysString} (${totalByDays7daysago} €)</span></i>]</li> \
-			          		<li>Visitas : <b>${totalVisitsToday}</b> [<i><span style="color:${percentageTotalVisitsColor}">${percentageTotalVisitsString} (${totalVisits7daysago})</span></i>]</li> \
-			          		<li>Ganancias por visitas : <b>${epvToday} cts€</b> [<i><span style="color:${percentageTotalEpvColor}">${percentageTotalEpvString} (${epv7daysago} cts€)</span></i>]</li> \
-			          	</ul> \
+					<p><h3>Resumén de ayer ${niceYesterday} [<i>comparativa con ${niceYesterdayMinus7Days}</i>] </h3> \
+						Ganancias : \
+								<ul> \
+									<li>Ayer: <b>${totalByDaysToday} €</b> [<i><span style="color:${percentageTotalByDaysColor}">${percentageTotalByDaysString} (${totalByDays7daysago} €)</span></i>]</li> \
+									<li>Posición: <span style="color:${positionIncomeColor}"><b>${positionIncome}</b>º</span> (<i>Mejor día: ${highestIncomeDayByUser[username].date} con ${highestIncomeDayByUser[username].income} € ganados)</i></li> \
+								</ul> \
+						Visitas : \
+			          			<ul> \
+			          				<li>Ayer: <b>${totalVisitsToday}</b> [<i><span style="color:${percentageTotalVisitsColor}">${percentageTotalVisitsString} (${totalVisits7daysago})</span></i>]</li> \
+			          				<li>Posición: <span style="color:${positionVisitsColor}"><b>${positionVisits}</b>º</span> (<i>Mejor día: ${highestVisitsDayByUser[username].date} con ${highestVisitsDayByUser[username].sessions} visitas)</i></li> \			          		
+			          			</ul> \
+			          	Ganancias por visitas : <b>${epvToday} cts€</b> [<i><span style="color:${percentageTotalEpvColor}">${percentageTotalEpvString} (${epv7daysago} cts€)</span></i>]</li> \
+			          	
 		       		</p>`;
 
 		var totalEarningsByMonth = userResult.totalMonth.toFixed(2);
@@ -606,12 +817,14 @@ const sendEmails = async function() {
 		}
 
 		mailHtml += ` \
-		        	<p>Resumén del mes de ${monthname} : \
-			          	<ul> \
-			          		<li>Ganancias : <b>${totalEarningsByMonth} €</b> [<i><span style="color:${percentageTotalEarningsByMonthColor}">${percentageTotalEarningsByMonthString} (${totalEarningsByMonthLastPeriod} €)</span></i>]</li> \
-			          		<li>Visitas : <b>${totalVisitsByMonth}</b> [<i><span style="color:${percentageTotalVisitsByMonthColor}">${percentageTotalVisitsByMonthString} (${totalVisitsByMonthLastPeriod})</span></i>]</li> \
-			          		<li>Ganancias por visitas : <b> ${epvByMonth} cts€</b> [<i><span style="color:${percentageEpvByMonthColor}">${percentageEpvByMonthString} (${epvByMonthLastPeriod} cts€)</span></i>]</li> \
-			          	</ul> \
+		        	<p><h3>Resumén del mes de ${monthname} [<i>comparativa con el mes pasado hasta el ${niceDayLastMonth}</i>] </h3> \
+			          	Ganancias : <b>${totalEarningsByMonth} €</b> [<i><span style="color:${percentageTotalEarningsByMonthColor}">${percentageTotalEarningsByMonthString} (${totalEarningsByMonthLastPeriod} €)</span></i>] \
+			          	<br/> \
+			          	Visitas : <b>${totalVisitsByMonth}</b> [<i><span style="color:${percentageTotalVisitsByMonthColor}">${percentageTotalVisitsByMonthString} (${totalVisitsByMonthLastPeriod})</span></i>] \
+			          	<br/> \
+			          	Ganancias por visitas : <b>${epvByMonth} cts€</b> [<i><span style="color:${percentageEpvByMonthColor}">${percentageEpvByMonthString} (${epvByMonthLastPeriod} cts€)</span></i>] \
+			          	<br/> \
+			          	<i>MEJOR MES : <b>${highestIncomeMonthByUser[username].month}</b> (con ${highestIncomeMonthByUser[username].income} € ganados)</i> \			          	
 		          	</p> \ 
 		          	`;
 		console.log('[%s] Mail about to be sent ==> ',username,mailHtml);
@@ -619,7 +832,7 @@ const sendEmails = async function() {
 		var mailOptions = {
 		    from: '"Sidemetrics NEW 👩🏽🐷📈🚀❤️" <no-reply@sidemetrics.com>', // sender address
 		    to: userResult.email, 
-		    subject: 'NEW Ganancias del dia ' + niceDay, // Subject line
+		    subject: 'Ganancias v6 del dia ' + niceYesterday, // Subject line
 		    //text: mailText, // plain text body
 		    html: mailHtml // html body
 		};
@@ -641,7 +854,81 @@ const sendEmails = async function() {
 
 }
 
+var computeUserExtraMetrics = async function(user){
 
+
+    var yesterday = moment().subtract(1,'days');
+
+	var username = user.username;
+	console.log('[%s] CALCULATING EXTRA METRICS',username);
+	
+	var userid = user._id;
+
+	var highestIncomeMonth = await IncomeByDay.findMonthWithHighestIncome(userid,username);
+	//console.log('[%s] highestIncomeMonth :',username,highestIncomeMonth);
+	var month = moment(highestIncomeMonth._id.month+"-"+highestIncomeMonth._id.year,"M-YYYY").format('MMMM YYYY');
+	var monthincome = highestIncomeMonth.total;
+	console.log('[%s] highestIncomeMonth : month : %s - income : %s',username,month,monthincome);
+	var highestIncomeMonthByUser = {month : month,income:monthincome};
+
+
+	var highestIncomeDay = await  IncomeByDay.findDayWithHighestIncome(userid,username);
+	//console.log('[%s] highestIncomeDay :',username,highestIncomeDay);
+	var date = moment(highestIncomeDay._id.date).format('dddd DD MMMM YYYY');
+	var dayincome = highestIncomeDay.total;
+	console.log('[%s] highestIncomeDay : day : %s - income : %s',username,date,dayincome);
+	var highestIncomeDayByUser = {date : date,income:dayincome};
+
+
+	var daysWithHighestIncome = await IncomeByDay.orderDaysByHighestIncome(userid,username);
+	var positionIncome = 0;
+	var totalIncomeThatDay = 0;
+	await daysWithHighestIncome.forEach(async function(day,index){
+		//console.log('day %s - date %s - income %s',JSON.stringify(day),day._id.date,day.total);
+		if (moment(day._id.date).isSame(yesterday,'day')){
+			positionIncome = index + 1;
+			totalIncomeThatDay = day.total;
+		}
+	});
+	console.log('[%s] Hier (%s) c\'est le %sº meilleur jour en terme de gains (%s)',username,yesterday.format('dddd DD MMMM YYYY'),positionIncome,totalIncomeThatDay);
+	var positionIncomeByUser = {position:positionIncome,income:totalIncomeThatDay};
+
+	var highestVisitsDay = await AnalyticsModel.findDayWithMostVisits(userid,username);
+	//console.log('[%s] highestVisitsDay :',username,highestVisitsDay);
+	var date = moment(highestVisitsDay.date).format('dddd DD MMMM YYYY');
+	var dayvisits = highestVisitsDay.sessions;
+	console.log('[%s] highestVisitsDay : day : %s - income : %s',username,date,dayvisits);
+	var highestVisitsDayByUser = {date:date,sessions:dayvisits};
+
+
+	var daysWithMostVisits = await AnalyticsModel.orderDaysWithMostVisits(userid,username);
+	var positionVisits = 0;
+	var totalVisitsThatDay = 0;
+	await daysWithMostVisits.forEach(async function(day,index){
+		//console.log('day %s - date %s - income %s',JSON.stringify(day),day.date,day.sessions);
+		if (moment(day.date).isSame(yesterday,'day')){
+			positionVisits = index + 1;
+			totalVisitsThatDay = day.sessions;
+		}
+	});
+	console.log('[%s] Hier (%s) c\'est le %sº meilleur jour en terme de visites (%s)',username,yesterday.format('dddd DD MMMM YYYY'),positionVisits,totalVisitsThatDay);
+	var positionVisitsByUser = {position:positionVisits,visits:totalVisitsThatDay};
+
+	console.log('[%s] END CALCULATING EXTRA METRICS BEFORE DASHBOARD',username);
+	
+	
+	console.log('[%s] About to return from computeUserExtraMetrics',username);
+	
+	return {
+		username: username,
+		highestIncomeMonthByUser : highestIncomeMonthByUser,
+		highestIncomeDayByUser : highestIncomeDayByUser,
+		positionIncomeByUser : positionIncomeByUser,
+		positionVisitsByUser : positionVisitsByUser,
+		highestVisitsDayByUser : highestVisitsDayByUser,
+	}
+
+}
 
 var computeUserEarnings = async function(from,to,user){
 
@@ -766,7 +1053,7 @@ var computeUserProviderEarning = async function(from,to,user,incomeprovider/*,ea
 	try {
 		console.log('##### [%s#%s] computeUserProviderEarning avant await getUserEarningsByIncome',username,incomesource);
 		var earned = await getUserEarningsByIncome(user,from,to,incomeprovider);
-		console.log('##### [%s#%s] computeUserProviderEarning après await getUserEarningsByIncome - résultat: ',username,incomesource,earned);						
+		//console.log('##### [%s#%s] computeUserProviderEarning après await getUserEarningsByIncome - résultat: ',username,incomesource,earned);						
 		//earnings[incomesource] = earned;										
 		//callbackSmallEach(null);			
 		return {incomesource:incomesource,earned:earned};
@@ -831,390 +1118,3 @@ db.once('open', function() {
 });
 
 module.exports = app;
-
-const sendEmailsOld = function() {
-    // CRON STARTED
-    var cronBegin = moment();
-    console.log('CRON SEND EMAILS - BEGIN at',cronBegin);
-
-
-    var yesterday = moment().subtract(1,'days'); 
-    var niceDay = yesterday.format('dddd DD MMMM YYYY');
-    var monthname = yesterday.format('MMMM');
-
-    console.log('CRON SEND EMAILS FOR DAY',yesterday);
-    // get all users
-    User.findAllUsers(function(err,users){
-    	if (err) { 
-    		console.log("Error while retrieving all users : ",err);
-    	} else {
-
-    		async.eachSeries(users,function getUserEarnings(user,callbackEach){
-
-    			// getting Analytics user sessions    	
-    			var sessions = [];		
-    			getUserSessions(user,yesterday,yesterday,sessions,function(){
-    				console.log('[%s] callback from getUserSessions',username);
-    			})
-    			// RISK: sessions will not be populated yet when you use it... let's see....
-    			
-    			var username = user.username;
-				var incomeproviders = getIncomeProviders();	
-
-				var earnings = [];				
-				
-				async.each(
-					incomeproviders,
-					async function (incomeprovider/*,callbackSmallEach*/){
-						var incomesource = incomeprovider.source;
-
-						try {
-							var earnedForThatSource = await getUserEarningsByIncome(user,yesterday,yesterday,incomeprovider);
-							console.log('[%s#%s] callback from getUserEarningsByIncome with result',username,incomesource,earnedForThatSource);						
-							earnings[incomesource] = earnedForThatSource;						
-							//callbackSmallEach(null);
-						} catch (err){
-							console.log('[%s#%s] error during getUserEarningsByIncome',username,incomesource,err);
-							//callbackSmallEach(err);
-						}
-					},    			
-	    			function sendEmails(err){
-	    				console.log("[%s] BEGIN SEND EMAILS",username);
-	    				if (err) {
-	    					console.error('[%s] error:',username,err);
-	    				} else {
-		    				//console.log('[%s] earnings:',username,earnings);
-		    				//console.log('[%s] earnings:',username,incomeproviders);
-		    				console.log('[%s] about to send email to',username,user.email);
-							var mailHtml = 'Querid@ ' + username +', aquí va el detalle de lo que has ganado ayer (' + niceDay +').<p>';
-							var totalToday = 0;
-							var totalMonth = 0;
-							for (var i = 0; i < incomeproviders.length; i++) {
-								
-								var incomeprovider = incomeproviders[i];
-								var incomesource = incomeprovider.source;
-			          			if (earnings[incomesource]){
-			          				var earningsYesterday = 0;
-			          				if (earnings[incomesource].days && earnings[incomesource].days[yesterday.format('YYYY-MM-DD')]){
-			          					earningsYesterday = earnings[incomesource].days[yesterday.format('YYYY-MM-DD')];
-			          				}
-			          				var mailPhraseSource = '<b>' + incomeprovider.source + '</b> : ' + earningsYesterday + 
-			          					' <i>(Total for ' + monthname  + ' : ' + earnings[incomesource].month + ')</i><br>';
-		          					//console.log(mailPhraseSource);
-		          					mailHtml += mailPhraseSource;
-		          					totalToday += earningsYesterday;
-		          					totalMonth += earnings[incomesource].month;
-		          				}
-		          			}
-		          		
-		          			var sessionsYesterday = sessions.days[yesterday.format('YYYY-MM-DD')];
-		          			var sessionsMonth = sessions.month;
-
-		          			var earningsPerVisitorYesterday = (totalToday*100 / sessionsYesterday);
-		          			var earningsPerVisitorMonth = (totalMonth*100 / sessionsMonth);
-
-		          			mailHtml += '</p><p>Resumén de ayer (' + niceDay + ') :';
-		          			mailHtml += '<ul><li>Has ganado <b>' + totalToday.toFixed(2) + ' €</b></li>';
-		          			mailHtml += '<li>Has recibido <b>' + sessionsYesterday + ' visitas</b></li>';
-		          			mailHtml += '<li>Eso es una ganancia media de <b>' + earningsPerVisitorYesterday.toFixed(2) + ' centimos por visitas</b></li></ul></p>';
-		          		
-		          			mailHtml +=	'<p>Resumén del mes de ' + monthname + ':';
-		          			mailHtml += '<ul><li>En total, ya has ganado <b>' + totalMonth.toFixed(2) + ' €</b> en ' + monthname + '... Estamos locos?</li>';
-		          			mailHtml += '<li>Has tenido <b>'+ sessionsMonth +' visitas </b> durante el mes</li>';
-		          			mailHtml += '<li>Eso es una ganancia media de <b>' + earningsPerVisitorMonth.toFixed(2) + ' centimos por visitas</b> este mes</li></ul></p>';
-							
-							//console.log('[%s] Final mail about to be sent:',mailHtml);
-
-							console.log('[%s] Mail about to be sent ==> ',username,mailHtml);
-							// setup email data with unicode symbols
-							var mailOptions = {
-							    from: '"Sidemetrics 👩🏽🐷📈🚀❤️" <no-reply@sidemetrics.com>', // sender address
-							    to: user.email, 
-							    subject: 'Ganancias del dia ' + niceDay, // Subject line
-							    //text: mailText, // plain text body
-							    html: mailHtml // html body
-							};
-
-							// send mail with defined transport object
-							transporter.sendMail(mailOptions, function(err, info){
-							    if (err) {
-							        console.log("[%s] Email could not be sent to %s. Error : ", username,user.email,err);			      
-							    } else {
-							    	console.log('[%s] Email successfully sent to',username,user.email);
-							    }			    
-							});
-							//console.log('[%s] TEST - EMAIL SENT',username);
-							console.log("Just before calling callbackEach()");
-	    					callbackEach();
-						}
-
-	    			}
-	    		);
-	    	},
-	    	function final(){	
-	    		var cronEnd = moment();    		
-	    		var elapsed = cronEnd.diff(cronBegin,'s');
-	    		console.log('CRON SEND EMAILS - END at %s. Time elapsed: %s seconds',cronEnd,elapsed);
-	    	});
-    	}
-    });
-};
-
-
-app.get('/dashboardold',async function(req,res){
-
-	console.log('ABOUT TO SHOW DASHBOARD FUCK YEAH !!!!!');
-
-	console.log('BUT FIRST, LETS FETCH EARNINGS FOR TODAY');
-	//fetchEarnings(true);
-	// TODO: peut-être rajouter un cron qui s'execute toutes les heures pour actualiser les earnings de TODAY ?!?!?!?!?!?!?!?!?!
-	// HUM DANGEREUX CAR ça veut dire executer le scraper et les APIS 24 fois par jour... au lieu de 2 ou 3 fois si c'est que lié à l'affichage du dashboard - donc à la demande
-	// MAIS D'UN AUTRE COTE, si c'est à la demande, on sait que ça prend 60 secondes pour tout recupérer (comme le fetchEarnings normal)... donc... !??
-	// ET SINON faut de toute façon asyncer ou algo, parce que sinon.... les deux vont s'executer en parallèle et y aura rien dans HOY....
-
-	var today = moment();
-	var yesterday = moment().subtract(1,'days');
-    var dashboardBeginDate = moment().subtract(8,'days'); 
-    //var niceDay = yesterday.format('dddd DD MMMM YYYY');
-    var monthname = yesterday.format('MMMM');
-
-    var daysArray = [];
-    var tempday = moment(dashboardBeginDate);
-    while (tempday.isBefore(today)) {
-    	daysArray.push(tempday.format('YYYY-MM-DD'));
-    	tempday.add(1,'days');
-    } 
-   
-    var homepageHtml = 
-    	`<style> \
-    		body { \
-    			font-family : Helvetica,Arial,sans-serif; \
-    		}\
-  			thead { \
-			    background-color: #c5f7c7; \
-			    color: #707070 \			    
-			} \	
-			tfoot { \
-			    font-size:1.2em; \
-			    background-color: #ffde84; \
-			    color: #707070 \
-			} \	
-			th, td { \
-			    padding: 5px 15px; \
-			    text-align: left; \
-			    border-bottom: 1px solid #ddd; \
-			    font-weight : normal \
-			} \
-			.visits { \
-				font-size:1.1em; \
-				font-style:italic; \
-				background-color: #f7e3ad; \
-			    color: #707070 \
-			} \
-			.yesterday { \
-				color: red \
-			} \
-			.month { \
-				font-weight: bold \ 
-			} \
-  		</style>` + 
-  		"<div>" + 
-  		"<h1>Sidemetrics 1.2.0 - Dashboard</h1>" + 
-  		`<h2>Ganancias de los últimos 7 dias</h2>`;
-
-   
-    // get all users
-    User.findAllUsers(function(err,users){
-    	if (err) { 
-    		console.log("Error while retrieving all users : ",err);
-    	} else {
-
-    		async.eachSeries(users,function getUserEarnings(user,callbackEach){
-
-    			// getting Analytics user sessions    	
-    			var sessions = [];		
-    			getUserSessions(user,dashboardBeginDate,yesterday,sessions,function(){
-    				console.log('[%s] callback from getUserSessions',username);
-    			})
-    			// RISK: sessions will not be populated yet when you use it... let's see....
-
-    			var username = user.username;
-				var incomeproviders = getIncomeProviders();		
-
-				var earnings = [];		
-				
-				async.each(incomeproviders,async function (incomeprovider/*,callbackSmallEach*/){
-					var incomesource = incomeprovider.source;
-					try {
-						var earnedForThatSource = await getUserEarningsByIncome(user,dashboardBeginDate,yesterday,incomeprovider);
-						console.log('[%s#%s] callback from getUserEarningsByIncome with result',username,incomesource,earnedForThatSource);						
-						earnings[incomesource] = earnedForThatSource;						
-						//callbackSmallEach(null);
-					} catch (err){
-						console.log('[%s#%s] error during getUserEarningsByIncome',username,incomesource,err);
-						//callbackSmallEach(err);
-					}
-				},    			
-    			function prepareResult(err){
-    				console.log("[%s] BEGIN PREPARE RESULT",username);
-    				
-    				if (err) {
-    					console.error('[%s] error:',username,err);
-    				} else {
-	    				//console.log('[%s] earnings:',username,earnings);
-	    				//console.log('[%s] earnings:',username,incomeproviders);
-	    				console.log('[%s] preparing dashboard result',username);
-						
-	    				// TABLE HEADER
-						var userHtml = `<h3>Usuario ${username}</h3>`+
-							`<table><thead><tr><th>Plataforma</th>`;
-
-						for (var i = 0; i < daysArray.length - 1; i++) {
-							var thisday = moment(daysArray[i]).format('dddd D');
-							userHtml += `<th>${thisday}</th>`;
-						}
-
-						userHtml += `<th class="yesterday">Ayer</th><th class="month">TOTAL ${monthname}</th></tr></thead><tbody>`;
-						
-						// EARNINGS 
-						// totalByDays : tableau avec la liste des gains totaux par jour, pour chaque jour. Utilisé dans la dernière ligne du tableau
-						var totalByDays = [];
-						// totalMonth: total des revenus sur le mois, utilisé pour la cellule en ba à droite
-						var totalMonth = 0;
-						for (var i = 0; i < incomeproviders.length; i++) {
-							
-							var incomeprovider = incomeproviders[i];
-							var incomesource = incomeprovider.source;
-							userHtml += '<tr>';
-		          			if (earnings[incomesource]){		          				
-	          					//during the week
-	          					userHtml += `<td><b>${incomesource}</b></td>`;
-
-	          					var earningByDays = earnings[incomesource].days;
-
-	          					for (var j = 0;j<daysArray.length - 1; j++){
-
-	          						var dayEarnings = 0;
-	          						if (earningByDays[daysArray[j]]){
-	          							// earningsByDays[daysArray[j] can be undefined if there are no income registered in DB for that day]
-	          							dayEarnings = earningByDays[daysArray[j]];
-	          						};
-
-	          						if (!totalByDays[daysArray[j]]){
-	          							totalByDays[daysArray[j]] = dayEarnings;
-	          						} else {
-	          							totalByDays[daysArray[j]] += dayEarnings;
-	          						}
-	          						userHtml +=	`<td>${dayEarnings.toFixed(2)} €</td>`;
-	          					}
-
-	          					//lastday
-	          					var lastdayearning = 0;
-	          					if (earningByDays[daysArray[daysArray.length-1]]){
-	          						lastdayearning = earningByDays[daysArray[daysArray.length-1]];
-	          					}
-
-	          					if (!totalByDays[daysArray[daysArray.length-1]]){
-	          						totalByDays[daysArray[daysArray.length-1]] = lastdayearning;
-	          					} else {
-	          						totalByDays[daysArray[daysArray.length-1]] += lastdayearning;
-	          					}
-	          					userHtml += `<td class="yesterday">${lastdayearning.toFixed(2)} €</td>`;
-	          					
-	          					//month
-	          					var totalMonthByProvider = earnings[incomesource].month;
-	          					userHtml +=	`<td class="month">${totalMonthByProvider.toFixed(2)} €</td>`;
-	          					
-	          					
-	          					totalMonth += totalMonthByProvider;
-	          				}
-	          				userHtml += '</tr>';
-	          			}
-
-	          			var totalAyer = totalByDays[daysArray[daysArray.length-1]];
-
-
-	          			if (sessions && sessions.days && sessions.month && sessions.month > 0){
-	          				// we have statistics about visits
-
-	          				//var sessionsYesterday = sessions.days[yesterday.format('YYYY-MM-DD')];
-		          			var sessionsMonth = sessions.month;
-
-		          			var earningsPerVisitorDays = [];//(totalToday*100 / sessionsYesterday).toFixed(2);
-		          			var earningsPerVisitorMonth = (totalMonth*100 / sessionsMonth);
-
-		          			// NUMBER OF VISITS
-		          			userHtml += `<tr class="visits"><td>Visitas</td>`;
-
-		          			for (var i = 0; i<daysArray.length-1;i++){
-		          				var sessionsByDay = sessions.days[daysArray[i]];
-		          				//earningsPerVisitorDays[daysArray[i]] = sessionsByDay*100/totalByDays[daysArrai[i]];
-		          				userHtml += `<td>${sessionsByDay}</td>`;
-		          			}
-
-		          			var totalSessionsAyer = sessions.days[daysArray[daysArray.length-1]];
-		          			
-		          			//last day
-		          			userHtml += `<td class="yesterday">${totalSessionsAyer}</td>`;
-		          			// total total
-		          			userHtml += `<td>${sessionsMonth}</td></tr>`; 
-
-
-		          			// EARNINGS PER VISITOR
-							userHtml += `<tr class="visits"><td>Ganancias por visitas</td>`;
-
-		          			for (var i = 0; i<daysArray.length-1;i++){
-		          				var earningsPerVisitorDays = (totalByDays[daysArray[i]]*100/sessions.days[daysArray[i]]);
-		          				userHtml += `<td>${earningsPerVisitorDays.toFixed(2)} €</td>`;
-		          			}
-
-		          			var earningsPerVisitorAyer = totalAyer*100/totalSessionsAyer;
-		          			
-		          			//last day
-		          			userHtml += `<td class="yesterday">${earningsPerVisitorAyer.toFixed(2)} €</td>`;
-		          			// total total
-		          			userHtml += `<td>${earningsPerVisitorMonth.toFixed(2)} €</td></tr>`; 
-						
-	          			} 
-
-	          			// TOTALS
-	          			userHtml += `</tbody><tfoot><tr><td>TOTAL GANANCIAS</td>`;
-	          			
-	          			for (var i = 0; i<daysArray.length-1;i++){
-	          				var totalByDay = totalByDays[daysArray[i]];
-	          				userHtml += `<td>${totalByDay.toFixed(2)} €</td>`;
-	          			}
-
-	          			
-
-	          			//last day
-	          			userHtml += `<td class="yesterday">${totalAyer.toFixed(2)} €</td>`;
-	          			// total total
-	          			userHtml += `<td>${totalMonth.toFixed(2)} €</td></tr></tfoot>`;
-
-	          			
-
-	          			
-	          			userHtml += `</table>`;
-
-						console.log('[%s] HTML Text in Dashboard ',username,userHtml);
-						
-						homepageHtml += userHtml;
-
-						//console.log('[%s] TEST - EMAIL SENT',username);
-						console.log("Just before calling callbackEach()");
-    					callbackEach();
-					}
-
-    			});
-	    	},
-	    	function final(){	
-	    		homepageHtml += 
-	    			"</div>" +
-	    			"<div><a href='/'>Go back to homepage</a></div>";
-	    		res.send(homepageHtml);
-	    	});
-    	}
-    });
-
-});

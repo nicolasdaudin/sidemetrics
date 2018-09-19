@@ -6,6 +6,7 @@ var async = require('async');
 var Credentials = require('../models/credentials');
 var User = require('../models/user');
 var Income = require('../models/income');
+var IncomeByDay = require('../models/incomebyday');
 var moment = require('moment');
 
 var ObjectId = require('mongoose').Types.ObjectId;
@@ -175,7 +176,7 @@ var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 				earningsDays.forEach(function (earningsDay){
 					var commission = earningsObject[earningsDay];
 
-					Income.Awin.findOneAndUpdate({ user_id: user_id, date: earningsDay}, {income : commission},{upsert:true},(function(err){
+					IncomeByDay.IncomeByDay.findOneAndUpdate({ user_id: user_id, date: earningsDay,source:'awin'}, {income : commission},{upsert:true},(function(err){
 						if (err){
 							console.log('[%s] Error while saving Awin earnings (%s,%s) into DB. Error : ',username,earningsDay,commission,err.errmsg);
 							error = error.concat(err.errmsg+ '\n');								

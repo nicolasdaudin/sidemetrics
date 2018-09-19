@@ -9,6 +9,7 @@ var request = require("request");
 
 var User = require('../models/user');
 var Income = require('../models/income');
+var IncomeByDay = require('../models/incomebyday');
 var Credentials = require('../models/credentials');
 
 
@@ -110,7 +111,7 @@ var getEarnings = function(user_id,username,day,after){
 			console.log('##### [%s] saveLooneaInDb',username);
 			//LooneaIncome = new Income.Loonea( { user_id: user_id, date: looneaApiDay, income : result});
 		
-			Income.Loonea.findOneAndUpdate({ user_id: user_id, date: looneaApiDay}, {income : result},{upsert:true},function(err){
+			IncomeByDay.IncomeByDay.findOneAndUpdate({ user_id: user_id, date: looneaApiDay,source:'loonea'}, {income : result},{upsert:true},function(err){
 			if (err){
 					console.log('[%s] Error while saving Loonea earnings (%s,%s) into DB. Error : ',username,looneaApiDay,result,err.errmsg);
 					callback(null,result);

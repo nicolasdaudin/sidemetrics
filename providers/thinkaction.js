@@ -11,6 +11,7 @@ var moment = require ('moment');
 
 var User = require('../models/user');
 var Income = require('../models/income');
+var IncomeByDay = require('../models/incomebyday');
 var Credentials = require('../models/credentials');
 
 //var Auth = require('../models/tradetrackerauth');
@@ -154,7 +155,7 @@ var getEarningsSeveralDays = function(user_id,username,startDay,endDay,after){
 					var tempEarning = item.revenue;
 					//console.log('[%s] About to add in DB:',username,tempDay,formatDay,tempEarning);
 					//var thinkactionIncome = new Income.Thinkaction ( { user_id: user_id, date: formatDay, income : tempEarning});
-					Income.Thinkaction.findOneAndUpdate({ user_id: user_id, date: formatDay}, {income : tempEarning},{upsert:true},function(err){						
+					IncomeByDay.IncomeByDay.findOneAndUpdate({ user_id: user_id, date: formatDay,source:'thinkaction'}, {income : tempEarning},{upsert:true},function(err){						
 						if (err){
 							console.log('[%s] Error while saving Thinkaction earnings (%s) into DB. Error : ',username,JSON.stringify(item),err.errmsg);
 							error = error.concat('Error while saving Thinkaction earnings into DB for item ' + JSON.stringify(item) + '\n');							

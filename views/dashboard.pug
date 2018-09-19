@@ -15,7 +15,7 @@
 	-var date = moment(dateString);
 	-return date.format('MMMM');	
 -} 
-- var incomesource = ['Adsense','Tradetracker','Moolineo','Loonea','Thinkaction','DGMax','Daisycon','GamblingAffiliation','Awin']
+- var incomesource = ['Adsense','TradeTracker','Moolineo','Loonea','Thinkaction','DGMax','Daisycon','GamblingAffiliation','Awin'];
 html
 	head
 		style
@@ -23,7 +23,10 @@ html
 		body
 			h1 DASHBOARD (v2) - Ganancias ultimos 7 dias
 			each user,userindex in result
-				h3 Ganancias para #{user.username}
+				- var username = user.username
+				h3 Ganancias para #{username}
+
+
 
 				table
 					// DATES
@@ -252,6 +255,18 @@ html
 											(#{earningsLastWeek.toFixed(2)} €)
 								else
 									td 0
+
+				br
+				- var positionIncome = positionIncomeByUser[username].position
+				- var positionIncomeClass = '';
+				- if (positionIncome < 11) { positionIncomeClass = 'positive'}
+				<strong>Mejor día (Ganancias)</strong> : #{highestIncomeDayByUser[username].date} (#{highestIncomeDayByUser[username].income} € ganados) - Ayer : <strong><span class='#{positionIncomeClass}'>#{positionIncome}º</span></strong> mejor día (#{positionIncomeByUser[username].income} € ganados)
+				br
+				<strong>Mejor día (Visitas)</strong> : #{highestVisitsDayByUser[username].date} (#{highestVisitsDayByUser[username].sessions} visitas) - Ayer : <strong>#{positionVisitsByUser[username].position}º</strong> mejor día (#{positionVisitsByUser[username].visits} visitas)				
+				br
+				<strong>Mejor mes</strong> : #{highestIncomeMonthByUser[username].month} (#{highestIncomeMonthByUser[username].income} € gagnados)
+				
+
 
 					
 

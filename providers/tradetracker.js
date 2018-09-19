@@ -11,6 +11,7 @@ var moment = require ('moment');
 
 var User = require('../models/user');
 var Income = require('../models/income');
+var IncomeByDay = require('../models/incomebyday');
 var Credentials = require('../models/credentials');
 
 //var Auth = require('../models/tradetrackerauth');
@@ -261,7 +262,7 @@ var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 				      	callback(error,commission);
 				      	continueLoop = false;
 				    } else {
-						Income.Tradetracker.findOneAndUpdate({ user_id: user_id, date: tempDay}, {income : commission},{upsert:true},(function(err){
+						IncomeByDay.IncomeByDay.findOneAndUpdate({ user_id: user_id, date: tempDay,source:'tradetracker'}, {income : commission},{upsert:true},(function(err){
 							if (err){
 								console.log('[%s] Error while saving Tradetracker earnings  (%s) into DB. Error : ',username,JSON.stringify(this),err.errmsg);
 								error = error.concat(err.errmsg+ '\n');								
@@ -293,36 +294,5 @@ var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 	});
 };
 
-/*var getMonthEarnings = function(user_id,username,day,after){
-	console.log("[%s] #### getMonthEarnings for Tradetracker",username);
-	var monthNumber = day.month() + 1;
-	//console.log("Month [%s] with number [%s]",day.format('MMMM'),monthNumber);
-	Income.Tradetracker.aggregate([
-			// $project permet de créer un nouveau champ juste pour cet aggregate, appelé month. Appliqué à tous les documents
-			{$project:{user_id:1,date:1,income:1,month : {$month : "$date"}}},
-			// $match va donc matcher que les documents de user_id pour le mois 'month' créé auparavant
-			{$match: { user_id : user_id, month: monthNumber}},
-			// $group: obligé de mettre un _id car permet de grouper sur ce champ. 
-			// Peut être utilisé plus tard pour faire l'aggregate sur tous les users ou sur tous les mois, par exemple pour envoyer le total de chaque mois passé
-			{$group: { _id: "$user_id", total: {$sum: "$income"}}}
-		],
-		function(err,result){
-			if (err){
-				console.log("Error",err);
-				after(err,null);
-			} 
-
-			console.log("Success with getMonthEearnings TRADETRACKER. Result: ",result);
-			if (result && result[0]){
-				after(null,result[0].total);
-			} else {
-				after(null,0);
-			}
-			
-			
-		}
-	);
-	//console.log("######### getMonthEarnings END");
-};*/
 
 module.exports = {router ,getEarnings};//, getMonthEarnings};

@@ -6,6 +6,7 @@ var async = require('async');
 var Credentials = require('../models/credentials');
 var User = require('../models/user');
 var Income = require('../models/income');
+var IncomeByDay = require('../models/incomebyday');
 var moment = require('moment');
 
 var ObjectId = require('mongoose').Types.ObjectId;
@@ -258,7 +259,7 @@ transaction_disapproved_amount: 0 } ]*/
 					//console.log('[%s] Daisycon Earnings - About to add in DB:',username,tempDay,tempEarning);
 					//var daisyconIncome = new Income.Daisycon ( { user_id: user_id, date: tempDay, income : tempEarning});
 					//daisyconIncome.save(function(err){
-					Income.Daisycon.findOneAndUpdate({ user_id: user_id, date: tempDay},{income: tempEarning},{upsert:true},function(err){	
+					IncomeByDay.IncomeByDay.findOneAndUpdate({ user_id: user_id, date: tempDay,source:'daisycon'},{income: tempEarning},{upsert:true},function(err){	
 						if (err){
 							console.log('[%s] Error while saving Daisycon earnings (%s) into DB. Error : ',username,JSON.stringify(item),err.errmsg);
 							error = error.concat('Error while saving Daisycon earnings into DB for item ' + JSON.stringify(item) + '\n');							

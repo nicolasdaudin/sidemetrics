@@ -7,7 +7,7 @@ var async = require ('async');
 var fx = require('money');
 fx.base = "EUR";
 fx.rates = {
-	"USD" : 1.22838, // 1 EUR === 1.22838 USD on 21 march 2018
+	"USD" : 1.16863, // 1 EUR === 1.22838 USD on 13 sept 2018
 	"EUR" : 1        // always include the base rate (1:1)
 };
 
@@ -16,6 +16,7 @@ var request = require("request");
 
 var User = require('../models/user');
 var Income = require('../models/income');
+var IncomeByDay = require('../models/incomebyday');
 var Credentials = require('../models/credentials');
 
 
@@ -131,7 +132,7 @@ var getEarnings = function(user_id,username,day,after){
 		function saveInDb(result,callback){
 			console.log('##### [%s] saveDgmaxInDb',username);
 			//var dgmaxIncome = new Income.Dgmax( { user_id: user_id, date: dgmaxApiDay, income : result});
-			Income.Dgmax.findOneAndUpdate({ user_id: user_id, date: dgmaxApiDay},{ income : result},{upsert:true},function(err){
+			IncomeByDay.IncomeByDay.findOneAndUpdate({ user_id: user_id, date: dgmaxApiDay,source:'dgmax'},{ income : result},{upsert:true},function(err){
 				if (err){
 					console.log('[%s] Error while saving Dgmax earnings (%s,%s) into DB. Error : ',username,dgmaxApiDay,result,err.errmsg);
 					callback(null,result);

@@ -9,6 +9,7 @@ var request = require("request");
 
 var User = require('../models/user');
 var Income = require('../models/income');
+var IncomeByDay = require('../models/incomebyday');
 var Credentials = require('../models/credentials');
 
 
@@ -162,7 +163,7 @@ var getEarningsSeveralDays = function(user_id,username,startDay,endDay,after){
 			    	var earningThisDay = result[date];
 			    	var tempEarning = { day : date, earned:earningThisDay};
 
-			        Income.GamblingAffiliation.findOneAndUpdate({ user_id: user_id, date: date},{ income : earningThisDay},{upsert:true},(function(err){
+			        IncomeByDay.IncomeByDay.findOneAndUpdate({ user_id: user_id, date: date,source:'gamblingaffiliation'},{ income : earningThisDay},{upsert:true},(function(err){
 						if (err){
 							// POUR L'INSTANT DANS LES LOGS SI IL Y A ·3 DATES le date et earningThisDay vont toujousr être de la même date
 							// voir à nouveau du côté de bind?!?!?

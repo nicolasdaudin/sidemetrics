@@ -64,5 +64,47 @@ var getMonthSessions = function(user_id,username, day,callback){
   //console.log("######### getMonthSessions END");
 };
 
+var findDayWithMostVisits = async function(user_id,username){
+    //console.log('[%s] findDayWithMostVisits for user_id %s and username %s',username,user_id,username);
+    try {
+        var result = await Analytics.aggregate([
+            // $project permet de créer un nouveau champ juste pour cet aggregate, appelé month. Appliqué à tous les documents
+            {$project:{user_id:1,date:1,sessions:1}},
+            // $match va donc matcher que les documents du user_id
+            {$match: {user_id : user_id}},
+            // $sort: ordonne les résultats sur le champ total, en DESC
+            {$sort:{sessions:-1}},
+            // $limit: ne prend que le premier résultat pour chacun
+            {$limit:1}
+        ]).exec();
 
-module.exports = { Analytics,getDaySessions,getMonthSessions} ;
+        //console.log('[%s] findDayWithMostVisits result',username,result);
+        return result[0];
+    } catch (err){
+        console.log("[%s] ERROR findDayWithMostVisits :",username, err);
+        throw err;
+    }
+}
+
+var orderDaysWithMostVisits = async function(user_id,username){
+    //console.log('[%s] findDayWithMostVisits for user_id %s and username %s',username,user_id,username);
+    try {
+        var result = await Analytics.aggregate([
+            // $project permet de créer un nouveau champ juste pour cet aggregate, appelé month. Appliqué à tous les documents
+            {$project:{user_id:1,date:1,sessions:1}},
+            // $match va donc matcher que les documents du user_id
+            {$match: {user_id : user_id}},
+            // $sort: ordonne les résultats sur le champ total, en DESC
+            {$sort:{sessions:-1}}
+        ]).exec();
+
+        //console.log('[%s] findDayWithMostVisits result',username,result);
+        return result;
+    } catch (err){
+        console.log("[%s] ERROR orderDaysWithMostVisits :",username, err);
+        throw err;
+    }
+}
+
+
+module.exports = { Analytics,getDaySessions,getMonthSessions,findDayWithMostVisits,orderDaysWithMostVisits} ;
