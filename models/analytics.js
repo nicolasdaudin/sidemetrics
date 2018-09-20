@@ -33,14 +33,16 @@ var getDaySessions = function(user_id,username, begin,end, callback){
 
 var getMonthSessions = function(user_id,username, day,callback){
   var monthNumber = day.month() + 1;
-  console.log('Income.getMonthSessions - args: user_id[%s],username[%s],month[%s]',user_id,username,monthNumber);
+  var yearNumber = day.year();
+
+  console.log('Income.getMonthSessions - args: user_id[%s],username[%s],month[%s],year[%}',user_id,username,monthNumber,yearNumber);
   
 
   Analytics.aggregate([
       // $project permet de créer un nouveau champ juste pour cet aggregate, appelé month. Appliqué à tous les documents
-      {$project:{user_id:1,date:1,sessions:1,month : {$month : "$date"}}},
+      {$project:{user_id:1,date:1,sessions:1,month : {$month : "$date"},year : {$year : "$date"}}},
       // $match va donc matcher que les documents de user_id pour le mois 'month' créé auparavant
-      {$match: { user_id : user_id, month: monthNumber}},
+      {$match: { user_id : user_id, month: monthNumber,year:yearNumber}},
       // $group: obligé de mettre un _id car permet de grouper sur ce champ. 
       // Peut être utilisé plus tard pour faire l'aggregate sur tous les users ou sur tous les mois, par exemple pour envoyer le total de chaque mois passé
       {$group: { _id: "$user_id", total: {$sum: "$sessions"}}}
