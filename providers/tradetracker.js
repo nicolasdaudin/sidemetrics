@@ -32,6 +32,7 @@ router.get('/earnings/:username',function(req,res){
 		} else {
 			//console.log('user',user);
 			var yesterday = moment().subtract(1,'days'); 			
+			//var yesterday = moment().subtract(14,'days'); 			
 			getEarningsSeveralDays(user._id,username,yesterday,yesterday,function(err,result){
 				if (err){
 					console.log("Returned from getEarnings (Tradetracker) with ERROR");
@@ -85,6 +86,7 @@ var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 
 	// Tradetracker takes the day before end day so we have to force one day more.
 	var tradetrackerApiEndDay = endDay.clone().add(1,'days').format('YYYY-MM-DD');
+	//var tradetrackerApiEndDay = endDay.clone().add(13,'days').format('YYYY-MM-DD');
 
 	async.waterfall([
 
@@ -189,8 +191,8 @@ var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 						 registrationDateTo: tradetrackerApiEndDay
 	          		}
 	          	};
+	          	console.log("[%s] retrieveTradetrackerEarnings - affiliate site id %s - registrationDateFrom %s - registrationDateTo %s",username,affiliateSiteId,tradetrackerApiStartDay,tradetrackerApiEndDay);
 	          	
-	          	console.log("[%s] retrieveTradetrackerEarnings - affiliate site id %s",username,affiliateSiteId);
 
 	          	client.getConversionTransactions(argsCT,function getEarningsForSite(err,report){
 	          		if (err){
@@ -199,14 +201,32 @@ var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 	          		} else {
 		          		//console.log('value of index',index);
 		          		//console.log('affiliateSiteIds array',affiliateSiteIds);
-		          		//console.log("getConversionTransactions for site id [%s] : [%s]",affiliateSiteId,JSON.stringify(report));
+		          		console.log("[%s] retrieveTradetrackerEarnings - getConversionTransactions for site id [%s] : [%s]",username,affiliateSiteId,JSON.stringify(report));
 
 		          		// TODO : on vient de rajouter && Report.conversionTransactions.item car sinon le earnings/nicdo77 (pour un seul jour) ne fonctionne pas
-		          		if (report && report.conversionTransactions && report.conversionTransactions.item && report.conversionTransactions.item.length > 0){
-		          			report.conversionTransactions.item.forEach(function(transaction) {
-		          				var commission = new Number(transaction.commission.$value);
-		          				var formatDate = moment(transaction.registrationDate.$value).format('YYYY-MM-DD');
-							    //console.log('transaction - commission [%s] raw date [%s] formatted date [%s]',commission,trdate,formatDate);
+		          		if (report && report.conversionTransactions && report.conversionTransactions.item /*&& report.conversionTransactions.item.length > 0*/){
+		          			var item = report.conversionTransactions.item;
+		          			if (Array.isArray(item)){
+		          				if (item.length > 0){
+		          					item.forEach(function(transaction) {
+				          				var commission = new Number(transaction.commission.$value);
+				          				var formatDate = moment(transaction.registrationDate.$value).format('YYYY-MM-DD');
+									    console.log('[%s] transaction - commission [%s] formatted date [%s]',username,commission,formatDate);
+
+		   								
+									    if (earningsArray[formatDate.toString()]) {
+									    	earningsArray[formatDate.toString()] += commission;
+									    } else {
+									    	earningsArray[formatDate.toString()] = 0 + commission;
+									    }
+									});
+								}
+
+							} else {
+								// only one transaction
+								var commission = new Number(item.commission.$value);
+		          				var formatDate = moment(item.registrationDate.$value).format('YYYY-MM-DD');
+							    console.log('[%s] transaction - commission [%s] formatted date [%s]',username,commission,formatDate);
 
    								
 							    if (earningsArray[formatDate.toString()]) {
@@ -214,8 +234,8 @@ var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 							    } else {
 							    	earningsArray[formatDate.toString()] = 0 + commission;
 							    }
-
-							});
+									
+							}
 		          		}
 		          		//console.log('[%s] Earned for site ID %s : %s',username,affiliateSiteId,earningsArray);
 		          		//totalEarnings += earningsArray;
