@@ -48,7 +48,7 @@ var getMonthEarnings = async function(user_id,username, day, source){
       {$group: { _id: "$user_id", total: {$sum: "$income"}}}
     ]).exec();
 
-    console.log("[%s#%s] SUCCESSFULLY finished IncomeByDay.aggregate for getMonthEarnings for day %s : ",username, source,day,result);
+    //console.log("[%s#%s] SUCCESSFULLY finished IncomeByDay.aggregate for getMonthEarnings for day %s : ",username, source,day,result);
     if (result && result[0]){
       return result[0].total;
     } else {

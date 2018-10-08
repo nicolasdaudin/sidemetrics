@@ -491,7 +491,7 @@ var getUserEarningsByIncome = async function(user,begin,end,incomeprovider){
 		try {
 			var result = await IncomeByDay.getDayEarnings(user._id,username,begin,end,incomeprovider.dbname);
 
-			console.log("[%s#%s] server.js - Back from getDayEarnings between %s and %s",username,incomesource,begin,end);		
+			//console.log("[%s#%s] server.js - Back from getDayEarnings between %s and %s",username,incomesource,begin,end);		
 
 			result.forEach(function(item){
 				var itemDate = moment(item.date).format('YYYY-MM-DD');
@@ -508,7 +508,7 @@ var getUserEarningsByIncome = async function(user,begin,end,incomeprovider){
 		try {
 			var result = await IncomeByDay.getMonthEarnings(user._id,username,end,incomeprovider.dbname);
 
-			console.log("[%s#%s] server.js - Back from getMonthEarnings for day %s with earnings: ",username,incomesource,end,result);		
+			//console.log("[%s#%s] server.js - Back from getMonthEarnings for day %s with earnings: ",username,incomesource,end,result);		
 			earnings.month = new Number(result);
 			return earnings;
 
@@ -533,18 +533,35 @@ app.get('/dashboard',async function(req,res){
 
     var monthname = yesterday.format('MMMM');
 
-    var daysArray = [];
+    /*var daysArray = [];
     var tempday = moment(dashboardBeginDate);
     while (tempday.isBefore(today)) {
     	daysArray.push(tempday.format('YYYY-MM-DD'));
     	tempday.add(1,'days');
-    } 
+    } */
+
     var sameDayLastMonth = moment(yesterday).subtract(1,'months');
     var firstDayLastMonth = moment(sameDayLastMonth).startOf('month');
 
-
+   /* console.log(' ');
+    console.log('#####################################');
+    console.log('      RESULT THIS WEEK');
+    console.log('#####################################');
+    console.log(' ');*/
     var result = await computeEarnings(dashboardBeginDate,yesterday);
+
+	/*console.log(' ');
+    console.log('#####################################');
+    console.log('      RESULT ONE WEEK AGO');
+    console.log('#####################################');
+    console.log(' ');   */
     var oneweekagoresult = await computeEarnings(beginMinus7Days,yesterdayMinus7Days);
+
+	/*console.log(' ');
+    console.log('#####################################');
+    console.log('      RESULT LAST MONTH');
+    console.log('#####################################');
+    console.log(' ');   */
     var lastmonthresult = await computeEarnings(firstDayLastMonth,sameDayLastMonth);
 
     console.log('BEFORE CALLING EXTRAMETRICS');
@@ -583,7 +600,8 @@ app.get('/dashboard',async function(req,res){
 	console.log('AFTER CALLING EXTRAMETRICS');
 
 	console.log('###### ABOUT TO DISPLAY DASHBOARD #####');
-    //console.log('Result is',result);
+    //console.log('thisweek result is',result);
+    //console.log('oneweekago - from %s to %s',beginMinus7Days,yesterdayMinus7Days);
     //console.log('oneweekago is',oneweekagoresult);
     //console.log('lastmonth is',lastmonthresult);
     res.render('dashboard', { 
@@ -934,12 +952,20 @@ var computeUserEarnings = async function(from,to,user){
 
 	var daysArray = [];
     var tempday = moment(from);
-    while (tempday.isSameOrBefore(to)) {
+    var username = user.username;
+
+    //console.log('[%s] computeUserEarnings - tempday %s - to %s',username,tempday,to);
+    while (tempday.isSameOrBefore(to,'day')) {
     	daysArray.push(tempday.format('YYYY-MM-DD'));
+    	//console.log('[%s] computeUserEarnings - ADDED tempday %s',username,tempday);
     	tempday.add(1,'days');
     } 
 
-	var username = user.username;
+
+	
+
+	//console.log('[%s] computeUserEarnings - from %s - to %s',username,from,to);
+ 	//console.log('[%s] computeUserEarnings - daysArray',username,daysArray);
 
 	// sessions info
 	var sessions = [];
@@ -1040,18 +1066,18 @@ var computeUserEarnings = async function(from,to,user){
 
 var computeUserProviderEarning = async function(from,to,user,incomeprovider/*,earnings,totalByDays,totalMonth*/){
 
-	var daysArray = [];
+	/*var daysArray = [];
     var tempday = moment(from);
     while (tempday.isBefore(to)) {
     	daysArray.push(tempday.format('YYYY-MM-DD'));
     	tempday.add(1,'days');
-    } 
+    } */
 
 	var username = user.username;
 	var incomesource = incomeprovider.source;
-	console.log('##### [%s#%s] computeUserProviderEarning commencé pour cette source',username,incomesource);			
+	//console.log('##### [%s#%s] computeUserProviderEarning commencé pour cette source',username,incomesource);			
 	try {
-		console.log('##### [%s#%s] computeUserProviderEarning avant await getUserEarningsByIncome',username,incomesource);
+		//console.log('##### [%s#%s] computeUserProviderEarning avant await getUserEarningsByIncome',username,incomesource);
 		var earned = await getUserEarningsByIncome(user,from,to,incomeprovider);
 		//console.log('##### [%s#%s] computeUserProviderEarning après await getUserEarningsByIncome - résultat: ',username,incomesource,earned);						
 		//earnings[incomesource] = earned;										
@@ -1096,9 +1122,9 @@ var computeEarnings = async function (from,to) {
 }
 
 
-// CRON TO SEND EMAILS **/
-var taskFetchEarnings = cron.schedule('35 4 * * *', fetchEarnings, true);
-var taskSendEmails = cron.schedule('45 4 * * *', sendEmails, true);
+// CRON TO FETCH EARNINGS AND THEN SEND EMAILS **/
+var taskFetchEarnings = cron.schedule('35 4 * * *', fetchEarnings, null, true, 'Europe/Paris');
+var taskSendEmails = cron.schedule('45 4 * * *', sendEmails, null, true,'Europe/Paris');
 
  
 

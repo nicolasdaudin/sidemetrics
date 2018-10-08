@@ -78,11 +78,11 @@ var userHasCredentials = async function(userid,username, incomesource, credentia
         if (user){
             // that user has credentials for that income source
             //console.log('userHasCredentials - user ',user)
-            console.log('[%s#%s] userHasCredentials - TRUE',username,incomesource);
+            //console.log('[%s#%s] userHasCredentials - TRUE',username,incomesource);
             return true;
         } else {
             // that user has no credentials for that income source
-            console.log('[%s#%s] userHasCredentials - FALSE',username,incomesource);
+            //console.log('[%s#%s] userHasCredentials - FALSE',username,incomesource);
             return false;
         }
 
