@@ -91,7 +91,8 @@ app.get('/', function (req, res) {
 		"<li><a href='/dashboard'>DASHBOARD (NEW)</a></li>"+  
 		"<li><a href='/cron/fetchEarnings'>CRON fetchEarnings</a></li>"+  
 		"<li><a href='/cron/fetchEarningsToday'>CRON fetchEarningsToday</a></li>"+ 		
-		"<li><a href='/cron/sendEmails'>CRON sendEmails (NEW)</a></li>"+ 
+		"<li><a href='/cron/sendEmails'>CRON sendEmails (NEW)</a></li>"+
+		"<li><a href='/cron/sendMonthlyEmails'>CRON sendMonthlyEmails (NEW)</a></li>"+		 
 		"<li><a href='/dbscript'>Transfer from old to new DB</a></li>"+  
 		"<li><a href='/findhighestincomeday'>Day with highest income</a></li>"+ 
 		"<li><a href='/findhighestincomemonth'>Month with highest income</a></li>"+  
@@ -196,11 +197,17 @@ app.get('/cron/fetchEarningsToday',function(req,res){
 	console.log("CRON FETCH EARNINGS TODAY- MANUAL LAUNCH");
 	fetchEarnings(true);
 	res.send('ONGOING, check logs');
-})
+});
 
 app.get('/cron/sendEmails',function(req,res){
 	console.log("CRON SEND EMAILS NEW - MANUAL LAUNCH");
 	sendEmails();
+	res.send('ONGOING, check logs');
+});
+
+app.get('/cron/sendMonthlyEmails',function(req,res){
+	console.log("CRON SEND MONTHLY EMAILS  - MANUAL LAUNCH");
+	sendMonthlyEmails();
 	res.send('ONGOING, check logs');
 });
 
@@ -850,7 +857,7 @@ const sendEmails = async function() {
 		var mailOptions = {
 		    from: '"Sidemetrics NEW 👩🏽🐷📈🚀❤️" <no-reply@sidemetrics.com>', // sender address
 		    to: userResult.email, 
-		    subject: 'Ganancias v6 del dia ' + niceYesterday, // Subject line
+		    subject: 'Ganancias del dia ' + niceYesterday, // Subject line
 		    //text: mailText, // plain text body
 		    html: mailHtml // html body
 		};
@@ -870,7 +877,201 @@ const sendEmails = async function() {
 	var elapsed = cronEnd.diff(cronBegin,'s');
 	console.log('CRON SEND EMAILS - END at %s. Time elapsed: %s seconds',cronEnd,elapsed);
 
-}
+};
+
+const sendMonthlyEmails = async function() {
+	// CRON STARTED
+    var cronBegin = moment();
+    console.log('CRON SEND MONTHLY EMAILS - BEGIN at',cronBegin);
+
+
+    var today = moment();
+
+    var firstDayLastMonth = moment(today).subtract(1,'months').startOf('month');
+    var lastDayLastMonth = moment(firstDayLastMonth).endOf('month');
+
+    var firstDaySecondLastMonth = moment(firstDayLastMonth).subtract(1,'months').startOf('month');
+    var lastDaySecondLastMonth = moment(firstDaySecondLastMonth).endOf('month');
+
+    var niceToday = today.format('dddd DD MMMM YYYY');
+    var niceLastMonth = firstDayLastMonth.format('MMMM');
+    var niceSecondLastMonth = firstDaySecondLastMonth.format('MMMM');
+
+    var incomeproviders = getIncomeProviders();	
+
+
+    console.log('CRON SEND MONTHLY EMAILS FOR MONTH',niceLastMonth);
+    console.log('firstDayLastMonth',firstDayLastMonth);
+    console.log('lastDayLastMonth',lastDayLastMonth);
+    console.log('firstDaySecondLastMonth',firstDaySecondLastMonth);
+    console.log('lastDaySecondLastMonth',lastDaySecondLastMonth);
+
+    // get all users
+
+    //var result = await computeEarnings(yesterday,yesterday);
+    var lastMonthResult = await computeEarnings(firstDayLastMonth,lastDayLastMonth);
+    var secondLastMonthResult = await computeEarnings(firstDaySecondLastMonth,lastDaySecondLastMonth);
+
+	console.log('BEFORE CALLING EXTRAMETRICS');
+   
+    const usersAsync = util.promisify(User.findAllUsers);
+	var users;
+	try {
+		users = await usersAsync();
+	} catch (err){
+		console.log("Error while retrieving all users : ",err);
+	}
+
+	var userPromises = [];
+
+	users.forEach(function(user){
+		const userPromise = computeUserExtraMetrics(user);
+		userPromises.push(userPromise); 
+	});
+	var userextrametrics = await Promise.all(userPromises);
+
+	var highestIncomeMonthByUser = [];
+	//var highestIncomeDayByUser = [];
+	//var positionIncomeByUser = [];
+	//var positionVisitsByUser = [];
+	//var highestVisitsDayByUser = [];
+
+	userextrametrics.forEach(function (extrametrics){
+		var username = extrametrics.username;
+		highestIncomeMonthByUser[username] = extrametrics.highestIncomeMonthByUser;
+		//highestIncomeDayByUser[username] = extrametrics.highestIncomeDayByUser;
+		//positionIncomeByUser[username] = extrametrics.positionIncomeByUser;
+		//positionVisitsByUser[username] = extrametrics.positionVisitsByUser;
+		//highestVisitsDayByUser[username] = extrametrics.highestVisitsDayByUser;
+	});
+
+	console.log('AFTER CALLING EXTRAMETRICS');
+
+
+    console.log('###### ABOUT TO PREPARE EMAIL #####');
+    //console.log('Result is',result);
+   
+    lastMonthResult.forEach(function (userResult,userIndex){
+    	var username = userResult.username;
+    	console.log('[%s] about to send email to',username,userResult.email);
+
+    	// contenu HTML
+    	var mailHtml = '';
+
+    	mailHtml += `Querid@ ${username}, aquí va el detalle de lo que has ganado el mes pasado (${niceLastMonth}) [<i>y la comparativa con el mes anterior (${niceSecondLastMonth})</i>] `;
+
+		mailHtml += `<p><h3>Total ganancias del mes pasado</h3> `;
+    	for (var i = 0; i < incomeproviders.length; i++) {			
+			var incomeprovider = incomeproviders[i];
+			var incomesource = incomeprovider.source;
+
+			var earnings = userResult.earnings[incomesource];
+
+			if ( earnings && earnings.days && earnings.month){
+				var earningsLastMonth = earnings.month;
+				// calculer différence
+				var earningsSecondLastMonthArray = secondLastMonthResult[userIndex].earnings[incomesource];
+				var earningsSecondLastMonth = 0;
+				var percentage = 0;
+				var percentageString = '0 %';
+				var percentageColor = 'black';
+
+				if ( earningsSecondLastMonthArray && earningsSecondLastMonthArray.month ){
+					earningsSecondLastMonth = earningsSecondLastMonthArray.month;
+					percentage = ((earningsLastMonth - earningsSecondLastMonth)/(earningsSecondLastMonth)*100).toFixed(0);
+					percentageString = (percentage > 0) ? '+' + percentage + ' %': percentage + ' %';
+					percentageColor = (percentage > 0)? 'green':'red';
+				} 
+
+				// display
+				mailHtml += `<b>${incomesource}</b> : ${earningsLastMonth.toFixed(2)} € `;
+				if (earningsSecondLastMonth > 0) {
+					mailHtml += `[<span style="color:${percentageColor}">${percentageString} (${earningsSecondLastMonth.toFixed(2)} €)</span>]</i><br>`;
+				} else {
+					mailHtml += `[<span>0 € el mes pasado</span>]</i><br>`;
+				}
+			}
+		}
+		mailHtml += `</p>`;
+
+		
+
+		var totalEarningsLastMonth = userResult.totalMonth.toFixed(2);
+		var totalEarningsSecondLastMonth = 0;
+		var percentageTotalEarningsByMonth = 0;
+		var percentageTotalEarningsByMonthString = '0 %';
+		var percentageTotalEarningsByMonthColor = 'black';
+
+		if (secondLastMonthResult[userIndex].totalPeriod){
+			totalEarningsSecondLastMonth = secondLastMonthResult[userIndex].totalPeriod.toFixed(2);
+			percentageTotalEarningsByMonth = (((totalEarningsLastMonth - totalEarningsSecondLastMonth)/totalEarningsSecondLastMonth)*100).toFixed(0);
+			percentageTotalEarningsByMonthString = (percentageTotalEarningsByMonth > 0) ? '+' + percentageTotalEarningsByMonth + ' %': percentageTotalEarningsByMonth + ' %';
+			percentageTotalEarningsByMonthColor = (percentageTotalEarningsByMonth > 0)? 'green':'red';
+		}
+
+		var totalVisitsLastMonth = userResult.sessions.month;
+		var totalVisitsSecondLastMonth = 0;
+		var percentageTotalVisitsByMonth = 0;
+		var percentageTotalVisitsByMonthString = '0 %';
+		var percentageTotalVisitsByMonthColor = 'black';
+
+		if (secondLastMonthResult[userIndex].sessions){
+			totalVisitsSecondLastMonth = secondLastMonthResult[userIndex].sessions.period;
+			percentageTotalVisitsByMonth = (((totalVisitsLastMonth - totalVisitsSecondLastMonth)/totalVisitsSecondLastMonth)*100).toFixed(0);
+			percentageTotalVisitsByMonthString = (percentageTotalVisitsByMonth > 0) ? '+' + percentageTotalVisitsByMonth + ' %': percentageTotalVisitsByMonth + ' %';
+			percentageTotalVisitsByMonthColor = (percentageTotalVisitsByMonth > 0)? 'green':'red';
+		}
+
+		var epvLastMonth = userResult.earningsPerVisitorMonth.toFixed(2);
+		var epvSecondLastMonth = 0;
+		var percentageEpvByMonth = 0;
+		var percentageEpvByMonthString = '0 %';
+		var percentageEpvByMonthColor = 'black';
+
+		if (secondLastMonthResult[userIndex].earningsPerVisitorPeriod){
+			epvSecondLastMonth = secondLastMonthResult[userIndex].earningsPerVisitorPeriod.toFixed(2);
+			percentageEpvByMonth = (((epvLastMonth - epvSecondLastMonth)/epvSecondLastMonth)*100).toFixed(0);
+			percentageEpvByMonthString = (percentageEpvByMonth > 0) ? '+' + percentageEpvByMonth + ' %': percentageEpvByMonth + ' %';
+			percentageEpvByMonthColor = (percentageEpvByMonth > 0)? 'green':'red';
+		}
+
+		mailHtml += ` \
+		        	<p><h3>Resumén del mes de ${niceLastMonth} [<i>comparativa con el mes pasado de ${niceSecondLastMonth}</i>] </h3> \
+			          	Ganancias : <b>${totalEarningsLastMonth} €</b> [<i><span style="color:${percentageTotalEarningsByMonthColor}">${percentageTotalEarningsByMonthString} (${totalEarningsSecondLastMonth} €)</span></i>] \
+			          	<br/> \
+			          	Visitas : <b>${totalVisitsLastMonth}</b> [<i><span style="color:${percentageTotalVisitsByMonthColor}">${percentageTotalVisitsByMonthString} (${totalVisitsSecondLastMonth})</span></i>] \
+			          	<br/> \
+			          	Ganancias por visitas : <b>${epvLastMonth} cts€</b> [<i><span style="color:${percentageEpvByMonthColor}">${percentageEpvByMonthString} (${epvSecondLastMonth} cts€)</span></i>] \
+			          	<br/> \
+			          	<i>MEJOR MES : <b>${highestIncomeMonthByUser[username].month}</b> (con ${highestIncomeMonthByUser[username].income} € ganados)</i> \			          	
+		          	</p> \ 
+		          	`;
+		console.log('[%s] Mail about to be sent ==> ',username,mailHtml);
+		// setup email data with unicode symbols
+		var mailOptions = {
+		    from: '"Sidemetrics NEW 👩🏽🐷📈🚀❤️" <no-reply@sidemetrics.com>', // sender address
+		    to: userResult.email, 
+		    subject: 'Ganancias del mes pasado (' + niceLastMonth+ ')', // Subject line
+		    //text: mailText, // plain text body
+		    html: mailHtml // html body
+		};
+
+		// send mail with defined transport object
+		transporter.sendMail(mailOptions, function(err, info){
+		    if (err) {
+		        console.log("[%s] Email could not be sent to %s. Error : ", username,user.email,err);			      
+		    } else {
+		    	console.log('[%s] Email successfully sent to',username,user.email);
+		    }			    
+		});
+		//console.log('[%s] TEST - EMAIL SENT',username);
+    });
+
+	var cronEnd = moment();    		
+	var elapsed = cronEnd.diff(cronBegin,'s');
+	console.log('CRON SEND EMAILS - END at %s. Time elapsed: %s seconds',cronEnd,elapsed);
+
+};
 
 var computeUserExtraMetrics = async function(user){
 
@@ -946,7 +1147,7 @@ var computeUserExtraMetrics = async function(user){
 		highestVisitsDayByUser : highestVisitsDayByUser,
 	}
 
-}
+};
 
 var computeUserEarnings = async function(from,to,user){
 
@@ -1125,6 +1326,8 @@ var computeEarnings = async function (from,to) {
 // CRON TO FETCH EARNINGS AND THEN SEND EMAILS **/
 var taskFetchEarnings = cron.schedule('35 4 * * *', fetchEarnings, null, true, 'Europe/Paris');
 var taskSendEmails = cron.schedule('45 4 * * *', sendEmails, null, true,'Europe/Paris');
+// every 9th day of the month
+var taskSendMonthlyEmails = cron.schedule('55 4 9 * *', sendMonthlyEmails, null, true,'Europe/Paris');
 
  
 
