@@ -85,6 +85,11 @@ td:nth-child(11){
 	color:#f08080;
 }
 
+.monthlypercentage{
+	font-size:0.9em;
+	font-style: italic;
+}
+
 
 
 .yesterday { 

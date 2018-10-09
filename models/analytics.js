@@ -108,5 +108,27 @@ var orderDaysWithMostVisits = async function(user_id,username){
     }
 }
 
+var getAllSessionsByMonth = async function(user_id,username){
+  
+    try {
+        var result = await Analytics.aggregate([
+            // $project permet de créer un nouveau champ juste pour cet aggregate, appelé month. Appliqué à tous les documents
+            {$project:{user_id:1,month : {$month : "$date"},year : {$year : "$date"},sessions:1}},
+            // $match va donc matcher que les documents du user_id
+            {$match: {user_id : user_id}},
+            // $group: l'_id permet de dire sur quels champs on groupe            
+            {$group: { _id: {user_id:"$user_id",month:"$month",year:"$year"}, total: {$sum: "$sessions"}}},
+            // $sort: ordonne les résultats par année puis mois, le mois en cours en premier
+            {$sort:{"_id.year":-1,"_id.month":-1}}
+        ]).exec();
 
-module.exports = { Analytics,getDaySessions,getMonthSessions,findDayWithMostVisits,orderDaysWithMostVisits} ;
+        //console.log('[%s] getAllSessionsByMonth result',username,result);
+        return result;
+    } catch (err){
+        console.log("[%s] ERROR getAllSessionsByMonth :",username, err);
+        throw err;
+    }
+}
+
+
+module.exports = { Analytics,getDaySessions,getMonthSessions,findDayWithMostVisits,orderDaysWithMostVisits,getAllSessionsByMonth} ;

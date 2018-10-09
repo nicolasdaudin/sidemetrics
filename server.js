@@ -87,8 +87,11 @@ app.get('/', function (req, res) {
   		"<div>" + 
   		"<h1>Welcome to Sidemetrics 1.2.0</h1>" + 
   		"<h2>MAIN MENU</h2>" +   		
-  		"<ul>" + 
-		"<li><a href='/dashboard'>DASHBOARD (NEW)</a></li>"+  
+  		"<ul>" + 		
+		"<li><a href='/dashboard/jimena123'>DASHBOARD JIMENA</a></li>"+  
+		"<li><a href='/dashboard/nicdo77'>DASHBOARD NICDO77</a></li>"+ 
+		"<li><a href='/monthlydashboard/jimena123'>DASHBOARD POR MES JIMENA</a></li>"+  
+		"<li><a href='/monthlydashboard/nicdo77'>DASHBOARD POR MES NICDO77</a></li>"+ 
 		"<li><a href='/cron/fetchEarnings'>CRON fetchEarnings</a></li>"+  
 		"<li><a href='/cron/fetchEarningsToday'>CRON fetchEarningsToday</a></li>"+ 		
 		"<li><a href='/cron/sendEmails'>CRON sendEmails (NEW)</a></li>"+
@@ -527,9 +530,18 @@ var getUserEarningsByIncome = async function(user,begin,end,incomeprovider){
 	}
 };
 
-app.get('/dashboard',async function(req,res){
-
-	console.log('ABOUT TO SHOW DASHBOARD NEW FUCK YEAH !!!!!');
+app.get('/dashboard/:username',async function (req,res){
+	var username = req.params.username;
+	console.log('[%s] ABOUT TO SHOW DASHBOARD NEW FUCK YEAH !!!!!',username);	
+	
+	
+	const userAsync = util.promisify(User.findByUsername);
+	var user;
+	try {
+		user = await userAsync(username);
+	} catch (err){
+		console.log("Error while retrieving user : ",err);
+	}
 
 	var today = moment();
 	var yesterday = moment().subtract(1,'days');
@@ -550,68 +562,44 @@ app.get('/dashboard',async function(req,res){
     var sameDayLastMonth = moment(yesterday).subtract(1,'months');
     var firstDayLastMonth = moment(sameDayLastMonth).startOf('month');
 
-   /* console.log(' ');
+    console.log(' ');
     console.log('#####################################');
     console.log('      RESULT THIS WEEK');
     console.log('#####################################');
-    console.log(' ');*/
-    var result = await computeEarnings(dashboardBeginDate,yesterday);
+    console.log(' ');
+    var result = await computeUserEarnings(dashboardBeginDate,yesterday,user);
 
-	/*console.log(' ');
+	console.log(' ');
     console.log('#####################################');
     console.log('      RESULT ONE WEEK AGO');
     console.log('#####################################');
-    console.log(' ');   */
-    var oneweekagoresult = await computeEarnings(beginMinus7Days,yesterdayMinus7Days);
+    console.log(' ');   
+    var oneweekagoresult = await computeUserEarnings(beginMinus7Days,yesterdayMinus7Days,user);
 
-	/*console.log(' ');
+	console.log(' ');
     console.log('#####################################');
     console.log('      RESULT LAST MONTH');
     console.log('#####################################');
-    console.log(' ');   */
-    var lastmonthresult = await computeEarnings(firstDayLastMonth,sameDayLastMonth);
+    console.log(' ');   
+    var lastmonthresult = await computeUserEarnings(firstDayLastMonth,sameDayLastMonth,user);
 
     console.log('BEFORE CALLING EXTRAMETRICS');
    
-    const usersAsync = util.promisify(User.findAllUsers);
-	var users;
-	try {
-		users = await usersAsync();
-	} catch (err){
-		console.log("Error while retrieving all users : ",err);
-	}
+	var userextrametrics = await computeUserExtraMetrics(user);
 
-	var userPromises = [];
+	var highestIncomeMonthByUser = userextrametrics.highestIncomeMonthByUser;
+	var highestIncomeDayByUser = userextrametrics.highestIncomeDayByUser;
+	var positionIncomeByUser = userextrametrics.positionIncomeByUser;
+	var positionVisitsByUser = userextrametrics.positionVisitsByUser;
+	var highestVisitsDayByUser = userextrametrics.highestVisitsDayByUser;
 
-	users.forEach(function(user){
-		const userPromise = computeUserExtraMetrics(user);
-		userPromises.push(userPromise); 
-	});
-	var userextrametrics = await Promise.all(userPromises);
-
-	var highestIncomeMonthByUser = [];
-	var highestIncomeDayByUser = [];
-	var positionIncomeByUser = [];
-	var positionVisitsByUser = [];
-	var highestVisitsDayByUser = [];
-
-	userextrametrics.forEach(function (extrametrics){
-		var username = extrametrics.username;
-		highestIncomeMonthByUser[username] = extrametrics.highestIncomeMonthByUser;
-		highestIncomeDayByUser[username] = extrametrics.highestIncomeDayByUser;
-		positionIncomeByUser[username] = extrametrics.positionIncomeByUser;
-		positionVisitsByUser[username] = extrametrics.positionVisitsByUser;
-		highestVisitsDayByUser[username] = extrametrics.highestVisitsDayByUser;
-	});
+	
 
 	console.log('AFTER CALLING EXTRAMETRICS');
 
 	console.log('###### ABOUT TO DISPLAY DASHBOARD #####');
-    //console.log('thisweek result is',result);
-    //console.log('oneweekago - from %s to %s',beginMinus7Days,yesterdayMinus7Days);
-    //console.log('oneweekago is',oneweekagoresult);
-    //console.log('lastmonth is',lastmonthresult);
-    res.render('dashboard', { 
+    
+    res.render('dashboardperuser', { 
 		result : result,
 		oneweekago : oneweekagoresult,
 		lastmonth: lastmonthresult,
@@ -626,6 +614,76 @@ app.get('/dashboard',async function(req,res){
 
     
 });
+
+app.get('/monthlydashboard/:username',async function (req,res){
+	var username = req.params.username;
+	console.log('[%s] ABOUT TO SHOW MONTHLY DASHBOARD  FUCK YEAH !!!!!',username);	
+	
+	
+	const userAsync = util.promisify(User.findByUsername);
+	var user;
+	try {
+		user = await userAsync(username);
+	} catch (err){
+		console.log("Error while retrieving user : ",err);
+	}
+
+	var incomebymonth = await IncomeByDay.getAllIncomeByMonth(user._id,username);
+	console.log(' ');
+    console.log('#####################################');
+    console.log('          INCOME BY MONTH');
+    console.log('#####################################');
+    console.log(' ');
+	console.log('[%s] incomebymonth',username,incomebymonth);
+	
+
+	var sessionsbymonth = await AnalyticsModel.getAllSessionsByMonth(user._id,username);
+	console.log(' ');
+    console.log('#####################################');
+    console.log('          SESSIONS BY MONTH');
+    console.log('#####################################');
+    console.log(' ');
+	console.log('[%s] sessionsbymonth',username,sessionsbymonth);
+	
+	console.log(' ');
+    console.log('#####################################');
+    console.log('          CALCULATING FINAL');
+    console.log('#####################################');
+    console.log(' ');
+	var result = [];
+	incomebymonth.forEach(function(incomeOneMonth){
+		//console.log('incomeOneMonth',incomeOneMonth);
+		var thatmonth = {};
+		thatmonth.income = incomeOneMonth.total.toFixed(2);
+		//moment({ hour:15, minute:10 });
+
+		thatmonth.prettymonth = moment({year:incomeOneMonth._id.year,month:incomeOneMonth._id.month -1 }).format('MMMM YYYY');
+		thatmonth.sortablemonth = moment({year:incomeOneMonth._id.year,month:incomeOneMonth._id.month -1 }).format('YYYY-MM');
+
+		sessionsbymonth.forEach(function(sessionsOneMonth){
+			if (sessionsOneMonth._id.year === incomeOneMonth._id.year && sessionsOneMonth._id.month === incomeOneMonth._id.month){
+				thatmonth.sessions = sessionsOneMonth.total;
+				thatmonth.epv = (thatmonth.income*100/thatmonth.sessions).toFixed(2);
+
+			}
+		});
+
+		console.log('thatmonth',thatmonth);
+		result.push(thatmonth);
+
+	});
+
+	console.log('###### ABOUT TO DISPLAY DASHBOARD #####');
+    
+    res.render('monthlydashboard', { 
+		result : result,
+		username:username
+	});
+	
+
+    
+});
+
 
 
 const sendEmails = async function() {
@@ -850,14 +908,18 @@ const sendEmails = async function() {
 			          	Ganancias por visitas : <b>${epvByMonth} cts€</b> [<i><span style="color:${percentageEpvByMonthColor}">${percentageEpvByMonthString} (${epvByMonthLastPeriod} cts€)</span></i>] \
 			          	<br/> \
 			          	<i>MEJOR MES : <b>${highestIncomeMonthByUser[username].month}</b> (con ${highestIncomeMonthByUser[username].income} € ganados)</i> \			          	
-		          	</p> \ 
+		          	</p> \
+		          	<p><h3>Ver también</h3> \
+		          		<i>Puedes ver el <strong>resumen de los 7 ultimos dias</strong> <a href="https://sidemetrics.herokuapp.com/dashboard/${username}">aquí</a> \
+		          		<br/> \ 
+		          		Y el <strong>resumen de todos los meses</strong> <a href="https://sidemetrics.herokuapp.com/monthlydashboard/${username}">aquí</a></i></p> \
 		          	`;
 		console.log('[%s] Mail about to be sent ==> ',username,mailHtml);
 		// setup email data with unicode symbols
 		var mailOptions = {
 		    from: '"Sidemetrics NEW 👩🏽🐷📈🚀❤️" <no-reply@sidemetrics.com>', // sender address
 		    to: userResult.email, 
-		    subject: 'Ganancias del dia ' + niceYesterday, // Subject line
+		    subject: 'Ganancias v7 del dia ' + niceYesterday, // Subject line
 		    //text: mailText, // plain text body
 		    html: mailHtml // html body
 		};
@@ -1045,13 +1107,15 @@ const sendMonthlyEmails = async function() {
 			          	<br/> \
 			          	<i>MEJOR MES : <b>${highestIncomeMonthByUser[username].month}</b> (con ${highestIncomeMonthByUser[username].income} € ganados)</i> \			          	
 		          	</p> \ 
+		          	<p><h3>Ver también</h3> \
+		          		<i>Puedes ver el <strong>resumen por mes</strong> <a href="https://sidemetrics.herokuapp.com/monthlydashboard/${username}">aquí</a></i></p> \
 		          	`;
 		console.log('[%s] Mail about to be sent ==> ',username,mailHtml);
 		// setup email data with unicode symbols
 		var mailOptions = {
 		    from: '"Sidemetrics NEW 👩🏽🐷📈🚀❤️" <no-reply@sidemetrics.com>', // sender address
 		    to: userResult.email, 
-		    subject: 'Ganancias del mes pasado (' + niceLastMonth+ ')', // Subject line
+		    subject: 'Ganancias v7 del mes pasado (' + niceLastMonth+ ')', // Subject line
 		    //text: mailText, // plain text body
 		    html: mailHtml // html body
 		};

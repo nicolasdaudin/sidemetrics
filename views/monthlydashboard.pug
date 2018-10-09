@@ -1,0 +1,91 @@
+-function prettyDate(dateString){
+	-var date = new Date(dateString);
+	-var dayNames = ["Domingo","Lunes","Martes","Miercoles","Jueves","Viernes","Sabado"];
+	-var dayofweek = dayNames[date.getDay()];
+	-var d = date.getDate(dateString);
+	-var shortMonthNames = [ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" ];
+	-var m = shortMonthNames[date.getMonth()];	
+	-return dayofweek + ' ' +d;
+-}
+-function get7daysago(dateString){
+	-var ago = moment(dateString);
+	-return ago.subtract(7,'days').format('YYYY-MM-DD');
+-}
+-function prettyMonth(dateString){
+	-var date = moment(dateString);
+	-return date.format('MMMM');	
+-} 
+- var incomesource = ['Adsense','TradeTracker','Moolineo','Loonea','Thinkaction','DGMax','Daisycon','GamblingAffiliation','Awin'];
+html
+	head
+		style
+			include style.css
+		script(src='../js/sorttable.js')
+		body
+			h1 DASHBOARD MENSUAL para #{username} 
+			table(class='sortable')
+				// DATES
+				thead
+					tr
+						td Mes
+						td Numero de visitas
+						td(class='sorttable_numeric monthlypercentage') % 
+						td(class='sorttable_numeric') Ganado
+						td(class='sorttable_numeric monthlypercentage') % 
+						td(class='sorttable_numeric') Ganancias por 100 visitas	
+						td(class='sorttable_numeric monthlypercentage') % 			
+				
+				// CHAQUE MOIS
+				each monthitem,index in result
+					tr
+						td #{monthitem.sortablemonth} #{monthitem.prettymonth}
+						
+						- var sessionsThisMonth = monthitem.sessions;
+						if index+1 < result.length
+							- var sessionsLastMonth = result[index+1].sessions							
+							- var percent = ((sessionsThisMonth - sessionsLastMonth)/sessionsLastMonth)*100
+							- var percentclass = 'positive'
+							- var percentstring = '' + percent.toFixed(0);
+							- if (percent < 0) {
+							-	percentclass = 'negative'
+							- } 
+							td #{sessionsThisMonth} 
+							td
+								span(class='monthlypercentage '+percentclass) #{percentstring} %
+						else
+							td #{sessionsThisMonth}
+							td 
+
+						- var incomeThisMonth = monthitem.income;
+						if index+1 < result.length
+							- var incomeLastMonth = result[index+1].income
+							- var percent = ((incomeThisMonth - incomeLastMonth)/incomeLastMonth)*100
+							- var percentclass = 'positive'
+							- var percentstring = '' + percent.toFixed(0);
+							- if (percent < 0) {
+							-	percentclass = 'negative'
+							- } 
+							td #{incomeThisMonth} € 
+							td
+								span(class='monthlypercentage '+percentclass) #{percentstring} %
+						else
+							td #{incomeThisMonth} € 
+							td
+
+						- var epvThisMonth = monthitem.epv;
+						if index+1 < result.length
+							- var epvLastMonth = result[index+1].epv
+							- var percent = ((epvThisMonth - epvLastMonth)/epvLastMonth)*100
+							- var percentclass = 'positive'
+							- var percentstring = '' + percent.toFixed(0);
+							- if (percent < 0) {
+							-	percentclass = 'negative'
+							- } 
+							td #{epvThisMonth} € 
+							td
+								span(class='monthlypercentage '+percentclass) #{percentstring} %
+						else
+							td #{epvThisMonth} € 
+							td
+			p La colonne '%' représente la progression en pourcentage par rapport au mois précédent ....
+			

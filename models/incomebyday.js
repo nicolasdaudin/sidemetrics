@@ -85,6 +85,28 @@ var findMonthWithHighestIncome = async function(user_id,username){
 
 }
 
+var getAllIncomeByMonth = async function(user_id,username){
+  //console.log('[%s] findMonthWithHighestIncome for user_id %s and username %s',username,user_id,username);
+    try {
+        var result = await IncomeByDay.aggregate([
+            // $project permet de créer un nouveau champ juste pour cet aggregate, appelé month. Appliqué à tous les documents
+            {$project:{user_id:1,month : {$month : "$date"},year : {$year : "$date"},income:1}},
+            // $match va donc matcher que les documents du user_id
+            {$match: {user_id : user_id}},
+            // $group: l'_id permet de dire sur quels champs on groupe            
+            {$group: { _id: {user_id:"$user_id",month:"$month",year:"$year"}, total: {$sum: "$income"}}},
+            // $sort: ordonne les résultats par année puis mois, le mois en cours en premier
+            {$sort:{"_id.year":-1,"_id.month":-1}}
+        ]).exec();
+
+        //console.log('[%s] getAllIncomeByMonth result',username,result);
+        return result;
+    } catch (err){
+        console.log("[%s] ERROR getAllIncomeByMonth :",username, err);
+        throw err;
+    }
+}
+
 var findDayWithHighestIncome = async function(user_id,username){
     //console.log('[%s] findDayWithHighestIncome for user_id %s and username %s',username,user_id,username);
     try {
@@ -131,4 +153,4 @@ var orderDaysByHighestIncome = async function(user_id,username){
     }
 }
 
-module.exports = { IncomeByDay,getDayEarnings,getMonthEarnings,findDayWithHighestIncome,findMonthWithHighestIncome,orderDaysByHighestIncome} ;
+module.exports = { IncomeByDay,getDayEarnings,getMonthEarnings,findDayWithHighestIncome,findMonthWithHighestIncome,orderDaysByHighestIncome,getAllIncomeByMonth} ;
