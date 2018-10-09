@@ -960,7 +960,7 @@ const sendMonthlyEmails = async function() {
 
     	mailHtml += `Querid@ ${username}, aquí va el detalle de lo que has ganado el mes pasado (${niceLastMonth}) [<i>y la comparativa con el mes anterior (${niceSecondLastMonth})</i>] `;
 
-		mailHtml += `<p><h3>Total ganancias del mes pasado</h3> `;
+		mailHtml += `<p><h3>Total ganancias (${niceLastMonth})</h3> `;
     	for (var i = 0; i < incomeproviders.length; i++) {			
 			var incomeprovider = incomeproviders[i];
 			var incomesource = incomeprovider.source;
@@ -1036,7 +1036,7 @@ const sendMonthlyEmails = async function() {
 		}
 
 		mailHtml += ` \
-		        	<p><h3>Resumén del mes de ${niceLastMonth} [<i>comparativa con el mes pasado de ${niceSecondLastMonth}</i>] </h3> \
+		        	<p><h3>Resumén del mes de ${niceLastMonth} [<i>comparativa con ${niceSecondLastMonth}</i>] </h3> \
 			          	Ganancias : <b>${totalEarningsLastMonth} €</b> [<i><span style="color:${percentageTotalEarningsByMonthColor}">${percentageTotalEarningsByMonthString} (${totalEarningsSecondLastMonth} €)</span></i>] \
 			          	<br/> \
 			          	Visitas : <b>${totalVisitsLastMonth}</b> [<i><span style="color:${percentageTotalVisitsByMonthColor}">${percentageTotalVisitsByMonthString} (${totalVisitsSecondLastMonth})</span></i>] \
@@ -1326,8 +1326,7 @@ var computeEarnings = async function (from,to) {
 // CRON TO FETCH EARNINGS AND THEN SEND EMAILS **/
 var taskFetchEarnings = cron.schedule('35 4 * * *', fetchEarnings, null, true, 'Europe/Paris');
 var taskSendEmails = cron.schedule('45 4 * * *', sendEmails, null, true,'Europe/Paris');
-// every 9th day of the month
-var taskSendMonthlyEmails = cron.schedule('55 4 9 * *', sendMonthlyEmails, null, true,'Europe/Paris');
+var taskSendMonthlyEmails = cron.schedule('55 4 1 * *', sendMonthlyEmails, null, true,'Europe/Paris');
 
  
 
