@@ -104,8 +104,6 @@ app.get('/', function (req, res) {
   		"</ul>" +  		
   		"<h2>TESTING</h2>" + 
   		"<ul>"+  		
-  		"<li>AWin normal: <a href='/awin/earnings/nicdo77'>nicdo77 (yesterday)</a></li>" + 
-  		"<li>Awin 1 months: <a href='/awin/historic/nicdo77/1'>nicdo77</a></li>" + 
   		"</ul>" +  		
   		"<h2>Working - Normal</h2>" + 
   		"<ul>"+
@@ -120,6 +118,7 @@ app.get('/', function (req, res) {
   		"<li>DG MAX earnings: <a href='/dgmax/earnings/jimena123'>jimena123 (yesterday)</a></li>" + 
   		"<li>Thinkaction: <a href='/thinkaction/earnings/nicdo77'>nicdo77 (yesterday)</a> - <a href='/thinkaction/earnings/jimena123'>jimena123 (yesterday)</a></li>" +
   		"<li>Gambling Affiliation: <a href='/gamblingaffiliation/earnings/nicdo77'>nicdo77 (yesterday)</a></li>" +
+  		"<li>AWin: <a href='/awin/earnings/nicdo77'>nicdo77 (yesterday)</a></li>" + 
   		"</ul>" + 
   		"<h2>Working - Historic</h2>" +   		
   		"<ul>"+
@@ -128,7 +127,8 @@ app.get('/', function (req, res) {
   		"<li>Thinkaction 6 months: <a href='/thinkaction/historic/nicdo77/6'>nicdo77</a> - <a href='/thinkaction/historic/jimena123/6'>jimena123</a></li>" + 
   		"<li>Daisycon 6 months: <a href='/daisycon/historic/nicdo77/6'>nicdo77</a> - <a href='/daisycon/historic/jimena123/6'>jimena123</a></li>" + 
   		"<li>Tradetracker 6 months: <a href='/tradetracker/historic/nicdo77/6'>nicdo77</a> - <a href='/tradetracker/historic/jimena123/6'>jimena123</a></li>" + 
-  		"<li>Gambling Affiliation 6 months: <a href='/gamblingaffiliation/historic/nicdo77/6'>nicdo77</a> - <a href='/gamblingaffiliation/historic/jimena123/6'>jimena123</a></li>" + 
+  		"<li>Gambling Affiliation 6 months: <a href='/gamblingaffiliation/historic/nicdo77/6'>nicdo77</a> - <a href='/gamblingaffiliation/historic/jimena123/6'>jimena123</a> (Attention, prend du temps)</li>" + 
+  		"<li>Awin 1 months: <a href='/awin/historic/nicdo77/1'>nicdo77</a> (Attention, prend du temps si bcp de mois)</li>" + 
   		"</ul>" + 
   		"</div>";
   res.send(homepageHtml);

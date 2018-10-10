@@ -82,19 +82,10 @@ var getEarnings = function (user_id,username,day,after){
 
 var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 
-	var awinApiStartDay = startDay.startOf("day").format('YYYY-MM-DD[T]HH:mm:ss');
-
-	//awinApiStartDay = '2018-04-22T00:00:00';
-
-	var awinApiEndDay = endDay.endOf("day").format('YYYY-MM-DD[T]HH:mm:ss');
-	//awinApiEndDay='2018-04-23T23:59:59'
-	console.log('awinApiStartDay',awinApiStartDay);
-	console.log('awinApiEndDay',awinApiEndDay);
-	
 
 
 
-	console.log("############### [%s] Begin Awin getEarningsSeveralDays for days BETWEEN %s and %s",username,awinApiStartDay,awinApiEndDay);
+	console.log("############### [%s] Begin Awin getEarningsSeveralDays for days BETWEEN %s and %s",username,startDay,endDay);
 
 	async.waterfall([	
 
@@ -115,50 +106,116 @@ var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 		},
 		
 
-		function retrieveAwinEarnings(credentials,callback){
+		function retrieveAwinEarnings(credentials,callbackFromRetrieve){
 
 			console.log('[%s] ##### retrieveAwinEarnings',username);
 			var publisherId = credentials.publisherId;
 			var token = credentials.accessToken;
 
 			var earningsObject = {};
-
-			var curl = new Curl();			
-			const url = `https://api.awin.com/publishers/${publisherId}/transactions/?startDate=${awinApiStartDay}&endDate=${awinApiEndDay}&timezone=UTC&accessToken=${token}`;
-			console.log(url);
-
-
-			curl.setOpt(Curl.option.URL,url);
 			
-			//curl.setOpt(Curl.option.VERBOSE, true );
-
 			
-			curl.on('end', function(statusCode,body,headers){
-				//console.log('[%s] Result from CURL call: ',username,body);
-				var result = JSON.parse(body);
+			// if date range > 31 days
+			
 
-				if (result && result.length>0){
-					result.forEach(function(transaction){
-						var commission = new Number(transaction.commissionAmount.amount);
-						var formatDate = moment(transaction.transactionDate).format('YYYY-MM-DD');
-						
-						if (earningsObject[formatDate.toString()]) {
-					    	earningsObject[formatDate.toString()] += commission;
-					    } else {
-					    	earningsObject[formatDate.toString()] = 0 + commission;
-					    }
+			var tempstart = moment(startDay);
+			var tempend = moment(endDay);
+
+			async.doWhilst(
+				function iteratee(callbackiteratee){
+					//console.log('retrieveAwinEarnings - doWhilst - iteratee');
+
+
+					if (tempend.diff(tempstart,'days') > 31){
+						tempend = moment(tempstart).add(31,'days');
+					}
+
+					var awinApiStartDay = tempstart.startOf("day").format('YYYY-MM-DD[T]HH:mm:ss');
+					var awinApiEndDay = tempend.endOf("day").format('YYYY-MM-DD[T]HH:mm:ss');
+					//awinApiEndDay='2018-04-23T23:59:59'
+					//console.log('awinApiStartDay  ',awinApiStartDay);
+					//console.log('awinApiEndDay    ',awinApiEndDay);
+
+
+					var curl = new Curl();			
+					const url = `https://api.awin.com/publishers/${publisherId}/transactions/?startDate=${awinApiStartDay}&endDate=${awinApiEndDay}&timezone=UTC&accessToken=${token}`;
+					console.log('[%s] retrieveAwinEarnings - calling AWin url with curl',username,url);
+
+
+					curl.setOpt(Curl.option.URL,url);
+					
+					//curl.setOpt(Curl.option.VERBOSE, true );
+
+					
+					curl.on('end', function(statusCode,body,headers){
+						//console.log('[%s] Result from CURL call: ',username,body);
+						//console.log('[%s] statuscode from CURL call: ',username,statusCode);
+
+						if (body && statusCode !== 200){
+							console.log('[%s] retrieveAwinEarnings - Error when calling AWin: ',username,body);
+						} else {
+
+							var result = JSON.parse(body);
+
+							if (result && result.length>0){
+								result.forEach(function(transaction){
+									var commission = new Number(transaction.commissionAmount.amount);
+									var formatDate = moment(transaction.transactionDate).format('YYYY-MM-DD');
+									
+									if (earningsObject[formatDate.toString()]) {
+								    	earningsObject[formatDate.toString()] += commission;
+								    } else {
+								    	earningsObject[formatDate.toString()] = 0 + commission;
+								    }
+								});
+							} else {
+								console.log('[%s] retrieveAwinEarnings - Nothing earned in that AWin curl request',username);
+
+							}
+						} 
+						//console.log('retrieveAwinEarnings - doWhilst - before callbackiterateee');
+						// timeout is because Awin does not accept more than 20 calls in one minute, so we separate each call by 3000ms in case of historic earning calls.
+						setTimeout(callbackiteratee,3000);
+							
 					});
+
+					curl.on('error',function(err,errCode){
+						console.log('[%s] retrieveAwinEarnings - Error while retrieving AWin earnings',username,err);
+						callback(err,null);
+					});
+
+					curl.perform();
+
+				},
+				function test(){
+					//console.log('retrieveAwinEarnings - doWhilst - test');
+					// we have to split the days if the difference between tempend and endDay is bigger than 31 days 
+					// (in which case we know we need at least 2 api calls)
+					var split = endDay.diff(tempend,'days')>31;
+
+					// we go on, only if tempend is different than endday
+					var testcontinue = endDay.diff(tempend,'days') > 0;
+					if (split){
+						tempstart = moment(tempend).add(1,'day');
+						tempend = moment(tempstart).add(31,'days');
+					} else {
+						tempstart = moment(tempend).add(1,'day');
+						tempend = moment(endDay);
+					}
+					return testcontinue;
+
+
+				},
+				function final(){
+					console.log('[%s] retrieveAwinEarnings - finished with all the CURLs',username);
+					callbackFromRetrieve(null,earningsObject);	
+					
+
+
 				}
-				
-				callback(null,earningsObject);		
-			});
+			);
 
-			curl.on('error',function(err,errCode){
-				console.log('[%s] Error while retrieving AWin earnings',username,err);
-				callback(err,null);
-			});
-
-			curl.perform();
+			
 		}, 
 
 		function saveAwinInDb(earningsObject,callback){
@@ -201,32 +258,5 @@ var getEarningsSeveralDays = function (user_id,username,startDay,endDay,after){
 	});
 };
 
-/*
-var getMonthEarnings = function(user_id,username,day,after){
-	console.log("[%s] #### getMonthEarnings for Awin",username);
-	var monthNumber = day.month() + 1;
-	//console.log("Month [%s] with number [%s]",day.format('MMMM'),monthNumber);
-	Income.Awin.aggregate([
-			// $project permet de créer un nouveau champ juste pour cet aggregate, appelé month. Appliqué à tous les documents
-			{$project:{user_id:1,date:1,income:1,month : {$month : "$date"}}},
-			// $match va donc matcher que les documents de user_id pour le mois 'month' créé auparavant
-			{$match: { user_id : user_id, month: monthNumber}},
-			// $group: obligé de mettre un _id car permet de grouper sur ce champ. 
-			// Peut être utilisé plus tard pour faire l'aggregate sur tous les users ou sur tous les mois, par exemple pour envoyer le total de chaque mois passé
-			{$group: { _id: "$user_id", total: {$sum: "$income"}}}
-		],
-		function(err,result){
-			if (err){
-				console.log("Error",err);
-				after(err,null);
-			} 
-				
-			
-			after(null,result[0].total);
-		}
-	);
-	//console.log("######### getMonthEarnings END");
-};
-*/
 
 module.exports = {router, getEarnings};//, getMonthEarnings};
