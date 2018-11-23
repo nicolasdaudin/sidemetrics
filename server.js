@@ -122,12 +122,12 @@ app.get('/', function (req, res) {
   		"</ul>" + 
   		"<h2>Working - Historic</h2>" +   		
   		"<ul>"+
-  		"<li>Adsense 6 months: <a href='/adsense/historic/nicdo77/6'>nicdo77</a> - <a href='/adsense/historic/jimena123/6'>jimena123</a></li>" + 
-  		"<li>Analytics 1 months: <a href='/analytics/historic/nicdo77/1'>nicdo77</a> - <a href='/analytics/historic/jimena123/1'>jimena123</a></li>" + 
-  		"<li>Thinkaction 6 months: <a href='/thinkaction/historic/nicdo77/6'>nicdo77</a> - <a href='/thinkaction/historic/jimena123/6'>jimena123</a></li>" + 
-  		"<li>Daisycon 6 months: <a href='/daisycon/historic/nicdo77/6'>nicdo77</a> - <a href='/daisycon/historic/jimena123/6'>jimena123</a></li>" + 
-  		"<li>Tradetracker 6 months: <a href='/tradetracker/historic/nicdo77/6'>nicdo77</a> - <a href='/tradetracker/historic/jimena123/6'>jimena123</a></li>" + 
-  		"<li>Gambling Affiliation 6 months: <a href='/gamblingaffiliation/historic/nicdo77/6'>nicdo77</a> - <a href='/gamblingaffiliation/historic/jimena123/6'>jimena123</a> (Attention, prend du temps)</li>" + 
+  		"<li>Adsense 1 month: <a href='/adsense/historic/nicdo77/1'>nicdo77</a> - <a href='/adsense/historic/jimena123/1'>jimena123</a></li>" + 
+  		"<li>Analytics 1 month: <a href='/analytics/historic/nicdo77/1'>nicdo77</a> - <a href='/analytics/historic/jimena123/1'>jimena123</a></li>" + 
+  		"<li>Thinkaction 1 month: <a href='/thinkaction/historic/nicdo77/1'>nicdo77</a> - <a href='/thinkaction/historic/jimena123/1'>jimena123</a></li>" + 
+  		"<li>Daisycon 1 month: <a href='/daisycon/historic/nicdo77/1'>nicdo77</a> - <a href='/daisycon/historic/jimena123/1'>jimena123</a></li>" + 
+  		"<li>Tradetracker 1 month: <a href='/tradetracker/historic/nicdo77/1'>nicdo77</a> - <a href='/tradetracker/historic/jimena123/1'>jimena123</a></li>" + 
+  		"<li>Gambling Affiliation 1 month: <a href='/gamblingaffiliation/historic/nicdo77/1'>nicdo77</a> - <a href='/gamblingaffiliation/historic/jimena123/1'>jimena123</a> (Attention, prend du temps)</li>" + 
   		"<li>Awin 1 months: <a href='/awin/historic/nicdo77/1'>nicdo77</a> (Attention, prend du temps si bcp de mois)</li>" + 
   		"</ul>" + 
   		"</div>";
@@ -927,9 +927,9 @@ const sendEmails = async function() {
 		// send mail with defined transport object
 		transporter.sendMail(mailOptions, function(err, info){
 		    if (err) {
-		        console.log("[%s] Email could not be sent to %s. Error : ", username,user.email,err);			      
+		        console.log("[%s] Email could not be sent to %s. Error : ", username,userResult.email,err);			      
 		    } else {
-		    	console.log('[%s] Email successfully sent to',username,user.email);
+		    	console.log('[%s] Email successfully sent to',username,userResult.email);
 		    }			    
 		});
 		//console.log('[%s] TEST - EMAIL SENT',username);
@@ -1123,9 +1123,9 @@ const sendMonthlyEmails = async function() {
 		// send mail with defined transport object
 		transporter.sendMail(mailOptions, function(err, info){
 		    if (err) {
-		        console.log("[%s] Email could not be sent to %s. Error : ", username,user.email,err);			      
+		        console.log("[%s] Email could not be sent to %s. Error : ", username,userResult.email,err);			      
 		    } else {
-		    	console.log('[%s] Email successfully sent to',username,user.email);
+		    	console.log('[%s] Email successfully sent to',username,userResult.email);
 		    }			    
 		});
 		//console.log('[%s] TEST - EMAIL SENT',username);
