@@ -6,6 +6,9 @@
     "type": "git",
     "url": "https://github.com/nicolasdaudin/sidemetrics.git"
   },
+  "engines": {
+    "node": "10.3.0"
+  },
   "author": "Nicolas Daudin for Webaddikt",
   "license": "MIT",
   "main": "server.js",
