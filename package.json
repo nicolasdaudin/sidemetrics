@@ -17,12 +17,10 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "ajv": "^5.0.0",
     "async": "^2.3.0",
     "body-parser": "^1.18.3",
     "curl": "^0.1.4",
     "express": "^4.16.4",
-    "fsevents": "^2.0.1",
     "googleapis": "^19.0.0",
     "moment": "^2.22.2",
     "money": "^0.2.0",
