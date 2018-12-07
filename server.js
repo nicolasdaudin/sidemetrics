@@ -104,6 +104,7 @@ app.get('/', function (req, res) {
   		"</ul>" +  		
   		"<h2>TESTING</h2>" + 
   		"<ul>"+  		
+  		"<li><a href='/whatsapp'>Test Whatsapp</a></li>"+  
   		"</ul>" +  		
   		"<h2>Working - Normal</h2>" + 
   		"<ul>"+
@@ -135,7 +136,32 @@ app.get('/', function (req, res) {
   console.log('Server time is : ', moment());
 });
 
+app.get('/whatsapp',function(req,res){
+	
+	console.log("TEsting whatsapp. Time now is : ",moment());
 
+	// Ask them to send a WhatsApp message to+1 415 523 8886 with code join camel-gnat.
+
+	// ACCOUNT SID AC7be9bf64c685aba64ac1e957c3be3468
+	// AUTH TOKEN 0d9714b63fa57c8808fdd34de0026c0c
+
+	// Download the helper library from https://www.twilio.com/docs/node/install
+	// Your Account Sid and Auth Token from twilio.com/console
+	const accountSid = 'AC7be9bf64c685aba64ac1e957c3be3468';
+	const authToken = '0d9714b63fa57c8808fdd34de0026c0c';
+	const client = require('twilio')(accountSid, authToken);
+
+	client.messages
+	      .create({
+	        body: 'Hello there!❤️Hello there!Hello there!Hello there!Hello there!Hello there!Hello there!Hello there!Hello there!Hello there!Hello there!Hello there!Hello there!Hello there!Hello there!',
+	        from: 'whatsapp:+14155238886',
+	        to: 'whatsapp:+34633142220'
+	      })
+	      .then(message => console.log(message.sid))
+	      .done();
+	res.send('Testing with Whatsapp');
+	
+});
 
 
 app.get('/wakeup',function(req,res){
@@ -694,10 +720,12 @@ const sendEmails = async function() {
 
     var yesterday = moment().subtract(1,'days'); 
     var niceYesterday = yesterday.format('dddd DD MMMM YYYY');
+    var niceShortYesterday = yesterday.format('dddd DD');
     var monthname = yesterday.format('MMMM');
 
 	var yesterdayMinus7Days = moment(yesterday).subtract(7,'days');
 	var niceYesterdayMinus7Days = 'el ' + yesterdayMinus7Days.format('dddd') + ' pasado';
+	var niceShortYesterdayMinus7Days = yesterdayMinus7Days.format('dddd DD');
 	var sameDayLastMonth = moment(yesterday).subtract(1,'months');
 	var niceDayLastMonth = sameDayLastMonth.format('dddd DD MMMM');
     var firstDayLastMonth = moment(sameDayLastMonth).startOf('month');
@@ -757,8 +785,10 @@ const sendEmails = async function() {
 
     	// contenu HTML
     	var mailHtml = '';
+    	var whatsappTxt = '';
 
     	mailHtml += `Querid@ ${username}, aquí va el detalle de lo que has ganado ayer ${niceYesterday} [<i>y la comparativa con el mes pasado hasta el ${niceDayLastMonth}</i>] `;
+    	whatsappTxt += `Ganancias para 🐷 ${username} para ayer 📆 ${niceShortYesterday}:`;
 
 		mailHtml += `<p><h3>Detalles ayer</h3> `;
     	for (var i = 0; i < incomeproviders.length; i++) {			
@@ -790,9 +820,17 @@ const sendEmails = async function() {
 				} else {
 					mailHtml += `[<span>0 € el mes pasado</span>]</i><br>`;
 				}
+
+				whatsappTxt += `\n*${incomesource}* : ${earnings.days[yesterday.format('YYYY-MM-DD')].toFixed(2)} € - _Total este mes : ${earnings.month.toFixed(2)} € `;
+				if (earningsLastPeriod > 0) {
+					whatsappTxt += `[${percentageString} (${earningsLastPeriod.toFixed(2)} €)]_`;
+				} else {
+					whatsappTxt += `[0 € el mes pasado]_`;
+				}
 			}
 		}
 		mailHtml += `</p>`;
+		whatsappTxt += '\n';
 
 		var totalByDaysToday = userResult.totalByDays[yesterday.format('YYYY-MM-DD')].toFixed(2);
 		var totalByDays7daysago = 0;
@@ -860,6 +898,8 @@ const sendEmails = async function() {
 			          	
 		       		</p>`;
 
+		whatsappTxt += `\n*TOTAL AYER:* ${totalByDaysToday} € y ${totalVisitsToday} visitas \n _Hace una semana (${niceShortYesterdayMinus7Days}): ${totalByDays7daysago} € (${percentageTotalByDaysString}) y ${totalVisits7daysago} visitas (${percentageTotalVisitsString})_ `;
+
 		var totalEarningsByMonth = userResult.totalMonth.toFixed(2);
 		var totalEarningsByMonthLastPeriod = 0;
 		var percentageTotalEarningsByMonth = 0;
@@ -914,7 +954,13 @@ const sendEmails = async function() {
 		          		<br/> \ 
 		          		Y el <strong>resumen de todos los meses</strong> <a href="https://sidemetrics.herokuapp.com/monthlydashboard/${username}">aquí</a></i></p> \
 		          	`;
+		
+		//whatsappTxt += `\n*TOTAL AYER:* ${totalByDaysToday} € y ${totalVisitsToday} visitas \n _Hace una semana: ${totalByDays7daysago} € (${percentageTotalByDaysString}) y ${totalVisits7daysago} visitas (${percentageTotalVisitsString})_ `;
+
+		whatsappTxt += `\n\n*TOTAL MES ${monthname}:* ${totalEarningsByMonth} € y ${totalVisitsByMonth} visitas \n _Mes pasado (hasta el ${niceDayLastMonth}): ${totalEarningsByMonthLastPeriod} € (${percentageTotalEarningsByMonthString}) y ${totalVisitsByMonthLastPeriod} (${percentageTotalVisitsByMonthString})_ `;
+		
 		console.log('[%s] Mail about to be sent ==> ',username,mailHtml);
+		
 		// setup email data with unicode symbols
 		var mailOptions = {
 		    from: '"Sidemetrics NEW 👩🏽🐷📈🚀❤️" <no-reply@sidemetrics.com>', // sender address
@@ -932,7 +978,35 @@ const sendEmails = async function() {
 		    	console.log('[%s] Email successfully sent to',username,userResult.email);
 		    }			    
 		});
-		//console.log('[%s] TEST - EMAIL SENT',username);
+
+		try {
+			// sending whatsapp
+			console.log("[%s] About to send via whatsapp",username);
+
+			// Ask them to send a WhatsApp message to+1 415 523 8886 with code join camel-gnat.
+
+			// ACCOUNT SID AC7be9bf64c685aba64ac1e957c3be3468
+			// AUTH TOKEN 0d9714b63fa57c8808fdd34de0026c0c
+
+			// Download the helper library from https://www.twilio.com/docs/node/install
+			// Your Account Sid and Auth Token from twilio.com/console
+			const accountSid = 'AC7be9bf64c685aba64ac1e957c3be3468';
+			const authToken = '0d9714b63fa57c8808fdd34de0026c0c';
+			const client = require('twilio')(accountSid, authToken);
+
+			client.messages
+			      .create({
+			        body: whatsappTxt,
+			        from: 'whatsapp:+14155238886',
+			        to: 'whatsapp:+34633142220'
+			      })
+			      .then(message => console.log(message.sid))
+			      .done();
+			
+		} catch (err) {
+			console.log('[%s] Error while trying to send over Whatsapp. Error : ',username,err);
+		}
+
     });
 
 	var cronEnd = moment();    		
