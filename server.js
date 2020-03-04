@@ -85,13 +85,13 @@ app.use('/awin',awin.router);
 app.get('/', function (req, res) {
   var homepageHtml = 
   		"<div>" + 
-  		"<h1>Welcome to Sidemetrics 1.2.0</h1>" + 
+  		"<h1>Welcome to Sidemetrics 1.3.0</h1>" + 
   		"<h2>MAIN MENU</h2>" +   		
   		"<ul>" + 		
 		"<li><a href='/dashboard/jimena123'>DASHBOARD JIMENA</a></li>"+  
-		"<li><a href='/dashboard/nicdo77'>DASHBOARD NICDO77</a></li>"+ 
+		"<!--<li><a href='/dashboard/nicdo77'>DASHBOARD NICDO77</a></li>-->"+ 
 		"<li><a href='/monthlydashboard/jimena123'>DASHBOARD POR MES JIMENA</a></li>"+  
-		"<li><a href='/monthlydashboard/nicdo77'>DASHBOARD POR MES NICDO77</a></li>"+ 
+		"<!--<li><a href='/monthlydashboard/nicdo77'>DASHBOARD POR MES NICDO77</a>--></li>"+ 
 		"<li><a href='/cron/fetchEarnings'>CRON fetchEarnings</a></li>"+  
 		"<li><a href='/cron/fetchEarningsToday'>CRON fetchEarningsToday</a></li>"+ 		
 		"<li><a href='/cron/sendEmails'>CRON sendEmails (NEW)</a></li>"+
@@ -108,28 +108,28 @@ app.get('/', function (req, res) {
   		"</ul>" +  		
   		"<h2>Working - Normal</h2>" + 
   		"<ul>"+
-  		"<li>Adsense connect: <a href='/adsense/connect/nicdo77'>nicdo77</a></li>"+  		
-  		"<li>Adsense earnings: <a href='/adsense/earnings/nicdo77'>nicdo77 (yesterday)</a> - <a href='/adsense/earnings/jimena123'>jimena123 (yesterday)</a></li>"+
-  		"<li>Analytics connect: <a href='/analytics/connect/nicdo77'>nicdo77</a> - <a href='/analytics/connect/jimena123'>jimena123</a></li>"+  		
-  		"<li>Analytics user sessions: <a href='/analytics/usersessions/nicdo77'>nicdo77 (yesterday)</a> - <a href='/analytics/usersessions/jimena123'>jimena123 (yesterday)</a></li>"+
-  		"<li>Tradetracker earnings: <a href='/tradetracker/earnings/nicdo77'>nicdo77 (yesterday)</a> - <a href='/tradetracker/earnings/jimena123'>jimena123 (yesterday)</a></li>"+
-  		"<li>Moolineo earnings: <a href='/moolineo/earnings/nicdo77'>nicdo77 (yesterday)</a></li>" +
-  		"<li>Loonea earnings: <a href='/loonea/earnings/nicdo77'>nicdo77 (yesterday)</a></li>" +
-  		"<li>Daisycon earnings: <a href='/daisycon/earnings/nicdo77'>nicdo77 (yesterday)</a> - <a href='/daisycon/earnings/jimena123'>jimena123 (yesterday)</a></li>" + 
+  		"<li>Adsense connect: <!--<a href='/adsense/connect/nicdo77'>nicdo77</a>--></li>"+  		
+  		"<li>Adsense earnings: <!--<a href='/adsense/earnings/nicdo77'>nicdo77 (yesterday)</a>--> - <a href='/adsense/earnings/jimena123'>jimena123 (yesterday)</a></li>"+
+  		"<li>Analytics connect: <!--<a href='/analytics/connect/nicdo77'>nicdo77</a>--> - <a href='/analytics/connect/jimena123'>jimena123</a></li>"+  		
+  		"<li>Analytics user sessions: <!--<a href='/analytics/usersessions/nicdo77'>nicdo77 (yesterday)</a>--> - <a href='/analytics/usersessions/jimena123'>jimena123 (yesterday)</a></li>"+
+  		"<li>Tradetracker earnings: <!--<a href='/tradetracker/earnings/nicdo77'>nicdo77 (yesterday)</a>--> - <a href='/tradetracker/earnings/jimena123'>jimena123 (yesterday)</a></li>"+
+  		"<li>Moolineo earnings: <!--<a href='/moolineo/earnings/nicdo77'>nicdo77 (yesterday)</a>--></li>" +
+  		"<li>Loonea earnings: <!--<a href='/loonea/earnings/nicdo77'>nicdo77 (yesterday)</a>--></li>" +
+  		"<li>Daisycon earnings: <!--<a href='/daisycon/earnings/nicdo77'>nicdo77 (yesterday)</a>--> - <a href='/daisycon/earnings/jimena123'>jimena123 (yesterday)</a></li>" + 
   		"<li>DG MAX earnings: <a href='/dgmax/earnings/jimena123'>jimena123 (yesterday)</a></li>" + 
-  		"<li>Thinkaction: <a href='/thinkaction/earnings/nicdo77'>nicdo77 (yesterday)</a> - <a href='/thinkaction/earnings/jimena123'>jimena123 (yesterday)</a></li>" +
-  		"<li>Gambling Affiliation: <a href='/gamblingaffiliation/earnings/nicdo77'>nicdo77 (yesterday)</a></li>" +
-  		"<li>AWin: <a href='/awin/earnings/nicdo77'>nicdo77 (yesterday)</a></li>" + 
+  		"<li>Thinkaction: <!--<a href='/thinkaction/earnings/nicdo77'>nicdo77 (yesterday)</a>--> - <a href='/thinkaction/earnings/jimena123'>jimena123 (yesterday)</a></li>" +
+  		"<li>Gambling Affiliation: <!--<a href='/gamblingaffiliation/earnings/nicdo77'>nicdo77 (yesterday)</a>--></li>" +
+  		"<li>AWin: <!--<a href='/awin/earnings/nicdo77'>nicdo77 (yesterday)</a>--></li>" + 
   		"</ul>" + 
   		"<h2>Working - Historic</h2>" +   		
   		"<ul>"+
-  		"<li>Adsense 1 month: <a href='/adsense/historic/nicdo77/1'>nicdo77</a> - <a href='/adsense/historic/jimena123/1'>jimena123</a></li>" + 
-  		"<li>Analytics 1 month: <a href='/analytics/historic/nicdo77/1'>nicdo77</a> - <a href='/analytics/historic/jimena123/1'>jimena123</a></li>" + 
-  		"<li>Thinkaction 1 month: <a href='/thinkaction/historic/nicdo77/1'>nicdo77</a> - <a href='/thinkaction/historic/jimena123/1'>jimena123</a></li>" + 
-  		"<li>Daisycon 1 month: <a href='/daisycon/historic/nicdo77/1'>nicdo77</a> - <a href='/daisycon/historic/jimena123/1'>jimena123</a></li>" + 
-  		"<li>Tradetracker 1 month: <a href='/tradetracker/historic/nicdo77/1'>nicdo77</a> - <a href='/tradetracker/historic/jimena123/1'>jimena123</a></li>" + 
-  		"<li>Gambling Affiliation 1 month: <a href='/gamblingaffiliation/historic/nicdo77/1'>nicdo77</a> - <a href='/gamblingaffiliation/historic/jimena123/1'>jimena123</a> (Attention, prend du temps)</li>" + 
-  		"<li>Awin 1 months: <a href='/awin/historic/nicdo77/1'>nicdo77</a> (Attention, prend du temps si bcp de mois)</li>" + 
+  		"<li>Adsense 1 month: <!--<a href='/adsense/historic/nicdo77/1'>nicdo77</a>--> - <a href='/adsense/historic/jimena123/1'>jimena123</a></li>" + 
+  		"<li>Analytics 1 month: <!--<a href='/analytics/historic/nicdo77/1'>nicdo77</a>--> - <a href='/analytics/historic/jimena123/1'>jimena123</a></li>" + 
+  		"<li>Thinkaction 1 month: <!--<a href='/thinkaction/historic/nicdo77/1'>nicdo77</a>--> - <a href='/thinkaction/historic/jimena123/1'>jimena123</a></li>" + 
+  		"<li>Daisycon 1 month: <!--<a href='/daisycon/historic/nicdo77/1'>nicdo77</a>--> - <a href='/daisycon/historic/jimena123/1'>jimena123</a></li>" + 
+  		"<li>Tradetracker 1 month: <!--<a href='/tradetracker/historic/nicdo77/1'>nicdo77</a>--> - <a href='/tradetracker/historic/jimena123/1'>jimena123</a></li>" + 
+  		"<li>Gambling Affiliation 1 month: <!--<a href='/gamblingaffiliation/historic/nicdo77/1'>nicdo77</a>--> - <a href='/gamblingaffiliation/historic/jimena123/1'>jimena123</a> (Attention, prend du temps)</li>" + 
+  		"<li>Awin 1 months: <!--<a href='/awin/historic/nicdo77/1'>nicdo77</a> (Attention, prend du temps si bcp de mois)--></li>" + 
   		"</ul>" + 
   		"</div>";
   res.send(homepageHtml);
