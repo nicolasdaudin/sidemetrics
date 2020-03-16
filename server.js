@@ -961,24 +961,29 @@ const sendEmails = async function() {
 		
 		console.log('[%s] Mail about to be sent ==> ',username,mailHtml);
 		
-		// setup email data with unicode symbols
-		var mailOptions = {
-		    from: '"Sidemetrics NEW 👩🏽🐷📈🚀❤️" <no-reply@sidemetrics.com>', // sender address
-		    to: userResult.email, 
-		    subject: 'Ganancias v7 del dia ' + niceYesterday, // Subject line
-		    //text: mailText, // plain text body
-		    html: mailHtml // html body
-		};
+		try {
+			// setup email data with unicode symbols
+			var mailOptions = {
+					from: '"Sidemetrics NEW 👩🏽🐷📈🚀❤️" <no-reply@sidemetrics.com>', // sender address
+					to: userResult.email, 
+					subject: 'Ganancias v7 del dia ' + niceYesterday, // Subject line
+					//text: mailText, // plain text body
+					html: mailHtml // html body
+			};
 
-		// send mail with defined transport object
-		transporter.sendMail(mailOptions, function(err, info){
-		    if (err) {
-		        console.log("[%s] Email could not be sent to %s. Error : ", username,userResult.email,err);			      
-		    } else {
-		    	console.log('[%s] Email successfully sent to',username,userResult.email);
-		    }			    
-		});
+			// send mail with defined transport object
+			transporter.sendMail(mailOptions, function(err, info){
+					if (err) {
+							console.log("[%s] Email could not be sent to %s. Error : ", username,userResult.email,err);			      
+					} else {
+						console.log('[%s] Email successfully sent to',username,userResult.email);
+					}			    
+			});
+		} catch (err) {
+			console.log('[%s] Error while trying to send email. Error : ',username,err);
+		}
 
+		/* REMOVED SINCE I DONT WANT TO UPGRADE MY ACCOUNT - 16 march 2020
 		try {
 			// sending whatsapp
 			console.log("[%s] About to send via whatsapp",username);
@@ -1006,6 +1011,7 @@ const sendEmails = async function() {
 		} catch (err) {
 			console.log('[%s] Error while trying to send over Whatsapp. Error : ',username,err);
 		}
+		*/
 
     });
 
